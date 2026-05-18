@@ -22,9 +22,7 @@ public class EsptoolRunner {
         Thread thread = new Thread(() -> {
             List<String> command = new ArrayList<>();
 
-            for (String part : config.esptoolCmd().split(" ")) {
-                command.add(part);
-            }
+            command.addAll(tokenize(config.esptoolCmd()));
             command.add("--chip");
             command.add(config.chip());
             command.add("--port");
@@ -85,5 +83,26 @@ public class EsptoolRunner {
         }
     }
 
+    // Tokenize a command string, respecting double-quoted segments so paths with spaces work.
+    static List<String> tokenize(String cmd) {
+        List<String> out = new ArrayList<>();
+        StringBuilder cur = new StringBuilder();
+        boolean inQuotes = false;
+        for (int i = 0; i < cmd.length(); i++) {
+            char c = cmd.charAt(i);
+            if (c == '"') {
+                inQuotes = !inQuotes;
+            } else if (c == ' ' && !inQuotes) {
+                if (cur.length() > 0) {
+                    out.add(cur.toString());
+                    cur.setLength(0);
+                }
+            } else {
+                cur.append(c);
+            }
+        }
+        if (cur.length() > 0) out.add(cur.toString());
+        return out;
+    }
 }
 

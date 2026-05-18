@@ -2,12 +2,34 @@ package com.ajinkyagokhale.espflasher.service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.prefs.Preferences;
 
 public class PrereqChecker {
+    private static final Preferences PREFS = Preferences.userNodeForPackage(PrereqChecker.class);
+    private static final String KEY_PYTHON = "custom.python.path";
+    private static final String KEY_ESPTOOL = "custom.esptool.path";
+
     private String pythonCmd;
     private String esptoolCmd;
     private String pipCmd;
 
+    public static String getCustomPythonPath() {
+        return PREFS.get(KEY_PYTHON, "");
+    }
+
+    public static String getCustomEsptoolPath() {
+        return PREFS.get(KEY_ESPTOOL, "");
+    }
+
+    public static void setCustomPaths(String pythonPath, String esptoolPath) {
+        PREFS.put(KEY_PYTHON, pythonPath == null ? "" : pythonPath.trim());
+        PREFS.put(KEY_ESPTOOL, esptoolPath == null ? "" : esptoolPath.trim());
+    }
+
+
+    private static String quoteIfNeeded(String s) {
+        return s.contains(" ") && !s.startsWith("\"") ? "\"" + s + "\"" : s;
+    }
 
     private static boolean isWindows() {
         return System.getProperty("os.name", "").toLowerCase().contains("win");
@@ -50,6 +72,10 @@ public class PrereqChecker {
     }
 
     private String findPython() {
+        String custom = getCustomPythonPath();
+        if (!custom.isEmpty() && runCommand(custom, "--version") != null) {
+            return custom;
+        }
         for (String cmd : pythonCandidates()) {
             if (runCommand(cmd, "--version") != null) {
                 return cmd;
@@ -59,9 +85,19 @@ public class PrereqChecker {
     }
 
     private String findEsptool() {
+        String customEsptool = getCustomEsptoolPath();
+        if (!customEsptool.isEmpty() && runCommand(customEsptool, "version") != null) {
+            return customEsptool;
+        }
+
+        String customPython = getCustomPythonPath();
+        if (!customPython.isEmpty() && runCommand(customPython, "-m", "esptool", "version") != null) {
+            return customPython + " -m esptool";
+        }
+
         for (String python : pythonCandidates()) {
             if (runCommand(python, "-m", "esptool", "version") != null) {
-                return python + " -m esptool";
+                return quoteIfNeeded(python) + " -m esptool";
             }
         }
 
@@ -137,10 +173,8 @@ public class PrereqChecker {
                     .start();
             String output = new String(p.getInputStream().readAllBytes()).strip();
             int exit = p.waitFor();
-            System.err.println("[PrereqChecker] " + String.join(" ", args) + " -> exit=" + exit + " output=" + output.replace("\n", " | "));
             return (exit == 0 && !output.isEmpty()) ? output : null;
         } catch (Exception e) {
-            System.err.println("[PrereqChecker] " + String.join(" ", args) + " -> EXCEPTION: " + e.getMessage());
             return null;
         }
     }

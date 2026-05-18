@@ -284,6 +284,74 @@ public class FlasherApp extends Application implements FlashListener, PortListen
 
 
     //helper
+        private void showSettingsDialog(Stage owner) {
+        Stage dialog = new Stage();
+        dialog.initOwner(owner);
+        dialog.initModality(Modality.APPLICATION_MODAL);
+        dialog.setTitle("Settings");
+
+        TextField pythonField = new TextField(PrereqChecker.getCustomPythonPath());
+        pythonField.setPromptText("e.g. C:\\Python313\\python.exe (leave blank for auto-detect)");
+        pythonField.setPrefWidth(420);
+        Button pythonBrowse = new Button("Browse...");
+        pythonBrowse.setOnAction(e -> {
+            FileChooser fc = new FileChooser();
+            fc.setTitle("Select Python executable");
+            File f = fc.showOpenDialog(dialog);
+            if (f != null) pythonField.setText(f.getAbsolutePath());
+        });
+        HBox pythonRow = new HBox(8, pythonField, pythonBrowse);
+
+        TextField esptoolField = new TextField(PrereqChecker.getCustomEsptoolPath());
+        esptoolField.setPromptText("e.g. C:\\Tools\\esptool.exe (leave blank to use Python)");
+        esptoolField.setPrefWidth(420);
+        Button esptoolBrowse = new Button("Browse...");
+        esptoolBrowse.setOnAction(e -> {
+            FileChooser fc = new FileChooser();
+            fc.setTitle("Select esptool executable");
+            File f = fc.showOpenDialog(dialog);
+            if (f != null) esptoolField.setText(f.getAbsolutePath());
+        });
+        HBox esptoolRow = new HBox(8, esptoolField, esptoolBrowse);
+
+        Label status = new Label();
+
+        Button save = new Button("Save & Recheck");
+        save.setOnAction(e -> {
+            PrereqChecker.setCustomPaths(pythonField.getText(), esptoolField.getText());
+            status.setText("Saved. Rechecking...");
+            new Thread(() -> {
+                prereqChecker.checkAll();
+                Platform.runLater(() -> {
+                    if (prereqChecker.isReady()) {
+                        status.setText("✓ esptool found: " + prereqChecker.getEsptoolCmd());
+                        statusLabel.setText("Ready.");
+                    } else {
+                        status.setText("✗ esptool still not found. Check the paths.");
+                    }
+                });
+            }).start();
+        });
+        Button close = new Button("Close");
+        close.setOnAction(e -> dialog.close());
+
+        HBox actions = new HBox(10, save, close);
+        actions.setAlignment(Pos.CENTER_RIGHT);
+
+        VBox content = new VBox(10,
+                new Label("Python executable (optional):"),
+                pythonRow,
+                new Label("esptool executable (optional, takes priority over Python):"),
+                esptoolRow,
+                status,
+                actions
+        );
+        content.setPadding(new Insets(15));
+
+        dialog.setScene(new Scene(content));
+        dialog.show();
+    }
+
     private void browseBin(Stage stage) {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Select Firmware");
@@ -563,7 +631,10 @@ public class FlasherApp extends Application implements FlashListener, PortListen
 //        aboutButton.setOnAction(e -> showAboutDialog());
 
 
-        HBox buttonRow = new HBox(10, flashButton, factoryButton, flashCountLabel);
+        Button settingsButton = new Button("Settings");
+        settingsButton.setOnAction(e -> showSettingsDialog(primaryStage));
+
+        HBox buttonRow = new HBox(10, flashButton, factoryButton, settingsButton, flashCountLabel);
 
         root.getChildren().add(buttonRow);
 // Progress bar
