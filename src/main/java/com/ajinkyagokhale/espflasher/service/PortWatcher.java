@@ -25,16 +25,18 @@ public class PortWatcher {
     );
     public static List<String> listEsp32Ports() {
         List<String> result = new ArrayList<>();
+        boolean isMac = System.getProperty("os.name").toLowerCase().contains("mac");
+
         for (SerialPort port : SerialPort.getCommPorts()) {
             int vid = port.getVendorID();
             if (ESP32_VENDOR_IDS.contains(vid)) {
-                result.add(port.getSystemPortPath());
+                String path = port.getSystemPortPath();
+                if (isMac && path.contains("cu.")) continue;
+                result.add(path);
             }
         }
         return result;
     }
-
-
 
     public void startWatching(PortListener listener) {
         isWatching = true;
@@ -75,8 +77,13 @@ public class PortWatcher {
     //helpers
     private Set<String> getCurrentPorts() {
         Set<String> ports = new HashSet<>();
+        boolean isMac = System.getProperty("os.name").toLowerCase().contains("mac");
+
         for (SerialPort port : SerialPort.getCommPorts()) {
-            ports.add(port.getSystemPortName());  // "COM3" or "ttyUSB0"
+            String path = port.getSystemPortPath();
+            // on Mac skip cu.* ports, only keep tty.*
+            if (isMac && path.contains("cu.")) continue;
+            ports.add(path);
         }
         return ports;
     }

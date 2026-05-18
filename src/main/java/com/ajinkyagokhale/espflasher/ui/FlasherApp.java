@@ -24,10 +24,13 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
 import javafx.scene.media.AudioClip;
+
+import javax.sound.sampled.Port;
 import java.awt.*;
 import java.io.File;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public class FlasherApp extends Application implements FlashListener, PortListener {
     // UI Controls
@@ -55,6 +58,8 @@ public class FlasherApp extends Application implements FlashListener, PortListen
     //flashcounter
     private int flashCount = 0;
     private Label flashCountLabel;
+    private boolean isFactoryMode = false;
+
 
 
     @Override
@@ -92,12 +97,22 @@ public class FlasherApp extends Application implements FlashListener, PortListen
                 progressBar.setProgress(1.0);
                 statusLabel.setStyle("-fx-text-fill: red;");
             }
+
+            if (isFactoryMode) {
+                statusLabel.setText("Waiting for next device...");
+                statusLabel.setStyle("-fx-text-fill: #66bb6a;");
+                flashButton.setDisable(true);
+                stopButton.setDisable(false);
+            }
         });
     }
 
     @Override
     public void onNewPort(String portName) {
-
+        Platform.runLater(() -> {
+            statusLabel.setText("Device detected: " + portName + " — flashing...");
+            startFlash(portName);
+        });
     }
 
     private void showPythonMissingDialog() {
@@ -122,6 +137,7 @@ public class FlasherApp extends Application implements FlashListener, PortListen
         statusLabel.setText("⚠ Python not found — install Python and restart.");
         statusLabel.setStyle("-fx-text-fill: red;");
     }
+
     private void autoInstallEsptool() {
         flashButton.setDisable(true);
         factoryButton.setDisable(true);
@@ -149,12 +165,15 @@ public class FlasherApp extends Application implements FlashListener, PortListen
         thread.start();
     }
 
-    private void startFlash() {
+    private void startFlash(String overridePort) {
+
         //guard
         if (!prereqChecker.isReady()) {
             statusLabel.setText("esptool not found. Please install it first.");
             return;
         }
+        //factory mode
+        String port = overridePort != null ? overridePort : portCombo.getValue();
 
         // 1. validate inputs
         String binPath = binPathField.getText();
@@ -163,7 +182,7 @@ public class FlasherApp extends Application implements FlashListener, PortListen
             return;
         }
 
-        String port = portCombo.getValue();
+        //String port = portCombo.getValue();
         if (port == null || port.isEmpty()) {
             statusLabel.setText("Please select a port.");
             return;
@@ -191,9 +210,67 @@ public class FlasherApp extends Application implements FlashListener, PortListen
     }
 
     private void startFactoryMode() {
+        if (binPathField.getText().isEmpty()) {
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("No Firmware Selected");
+            alert.setHeaderText(null);
+            alert.setContentText("Please select a firmware .bin file before starting factory mode.");
+            alert.showAndWait();
+            return;
+        }
+        if (!prereqChecker.isReady()) {
+            statusLabel.setText("esptool not ready.");
+            return;
+        }
+
+        isFactoryMode = true;
+
+        flashButton.setDisable(true);
+        factoryButton.setText("Stop Factory");
+        factoryButton.setOnAction(e -> stopAll());
+        stopButton.setDisable(false);
+        statusLabel.setText("Factory mode — waiting for device...");
+        statusLabel.setStyle("-fx-text-fill: #66bb6a;");
+
+
+
+        //confirmation box
+        // confirmation dialog
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Start Factory Mode");
+        confirm.setHeaderText("Ready to flash?");
+
+// big font bin file name
+        Label binLabel = new Label(new File(binPathField.getText()).getName());
+        binLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #1a1a1a;");
+
+        Label chipLabel = new Label("Chip: " + chipCombo.getValue() + "   Baud: " + baudCombo.getValue());
+        chipLabel.setStyle("-fx-text-fill: #666666; -fx-font-size: 12px;");
+
+        VBox content = new VBox(8, binLabel, chipLabel);
+        confirm.getDialogPane().setContent(content);
+
+        ButtonType startBtn = new ButtonType("Start Factory", ButtonBar.ButtonData.OK_DONE);
+        ButtonType cancelBtn = new ButtonType("Cancel", ButtonBar.ButtonData.CANCEL_CLOSE);
+        confirm.getButtonTypes().setAll(startBtn, cancelBtn);
+
+        Optional<ButtonType> result = confirm.showAndWait();
+        if (result.isEmpty() || result.get() != startBtn) return;  // cancelled
+
+
+        portWatcher.startWatching(this);
     }
 
     private void stopAll() {
+        portWatcher.stopWatching();
+        esptoolRunner.stopFlashing();
+        isFactoryMode = false;
+        flashButton.setDisable(false);
+        factoryButton.setText("Factory Mode");
+        factoryButton.setOnAction(e -> startFactoryMode());
+        stopButton.setDisable(true);
+        statusLabel.setText("Stopped.");
+        statusLabel.setStyle("");
     }
 
 
@@ -222,6 +299,7 @@ public class FlasherApp extends Application implements FlashListener, PortListen
             portCombo.getSelectionModel().selectFirst();  // auto select first ESP32
         }
     }
+
     private void installEsptool() {
         if (prereqChecker.getPipCmd() == null) {
             statusLabel.setText("pip not found — install Python first.");
@@ -299,6 +377,7 @@ public class FlasherApp extends Application implements FlashListener, PortListen
         }
         return false;
     }
+
     private void showAboutDialog() {
         Stage dialog = new Stage();
         dialog.setTitle("About");
@@ -348,6 +427,8 @@ public class FlasherApp extends Application implements FlashListener, PortListen
         dialog.setScene(scene);
         dialog.show();
     }
+
+
     @Override
     public void start(Stage primaryStage) throws Exception {
 
@@ -365,7 +446,6 @@ public class FlasherApp extends Application implements FlashListener, PortListen
         } else {
             System.out.println("Sound files not found at /sounds/success.wav or /sounds/failure.wav");
         }
-
 
 
         primaryStage.setTitle("ESP Flasher");
@@ -447,11 +527,10 @@ public class FlasherApp extends Application implements FlashListener, PortListen
         root.getChildren().add(configCard);
         // Buttons row
         flashButton = new Button("Flash Once");
-        flashButton.setOnAction(e -> startFlash());
+        flashButton.setOnAction(e -> startFlash(null));
 
         factoryButton = new Button("Factory Mode");
         factoryButton.setOnAction(e -> startFactoryMode());
-
 
 
         flashCountLabel = new Label("Flashed: 0");
@@ -465,7 +544,7 @@ public class FlasherApp extends Application implements FlashListener, PortListen
 //        aboutButton.setOnAction(e -> showAboutDialog());
 
 
-        HBox buttonRow = new HBox(10, flashButton, factoryButton, stopButton, flashCountLabel);
+        HBox buttonRow = new HBox(10, flashButton, factoryButton, flashCountLabel);
 
         root.getChildren().add(buttonRow);
 // Progress bar
