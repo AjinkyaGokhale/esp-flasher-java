@@ -9,47 +9,66 @@ public class PrereqChecker {
     private String pipCmd;
 
 
-    private String findPython() {
-        // try full paths first for packaged app
-        List<String> candidates = List.of(
-                "/opt/homebrew/bin/python3",      // Mac Homebrew
-                "/usr/local/bin/python3",          // Mac standard
-                "/usr/bin/python3",                // Mac system
-                "python3",                         // fallback
+    private static boolean isWindows() {
+        return System.getProperty("os.name", "").toLowerCase().contains("win");
+    }
+
+    private static List<String> pythonCandidates() {
+        if (isWindows()) {
+            String localAppData = System.getenv("LOCALAPPDATA");
+            String programFiles = System.getenv("ProgramFiles");
+            String programFilesX86 = System.getenv("ProgramFiles(x86)");
+            List<String> list = new ArrayList<>(List.of(
+                    "py.exe", "py",
+                    "python.exe", "python",
+                    "python3.exe", "python3",
+                    "C:\\Windows\\py.exe",
+                    "C:\\Windows\\System32\\py.exe"
+            ));
+            for (String ver : List.of("313", "312", "311", "310", "39")) {
+                if (localAppData != null) {
+                    list.add(localAppData + "\\Programs\\Python\\Python" + ver + "\\python.exe");
+                }
+                if (programFiles != null) {
+                    list.add(programFiles + "\\Python" + ver + "\\python.exe");
+                }
+                if (programFilesX86 != null) {
+                    list.add(programFilesX86 + "\\Python" + ver + "\\python.exe");
+                }
+                list.add("C:\\Python" + ver + "\\python.exe");
+            }
+            return list;
+        }
+        return List.of(
+                "/opt/homebrew/bin/python3",
+                "/usr/local/bin/python3",
+                "/usr/bin/python3",
+                "python3",
                 "python",
                 "py"
         );
+    }
 
-        for (String cmd : candidates) {
+    private String findPython() {
+        for (String cmd : pythonCandidates()) {
             if (runCommand(cmd, "--version") != null) {
                 return cmd;
             }
         }
         return null;
     }
-    private String findEsptool() {
-        // try full python paths first
-        List<String> pythonCandidates = List.of(
-                "/opt/homebrew/bin/python3",
-                "/usr/local/bin/python3",
-                "/usr/bin/python3",
-                "python3",
-                "python"
-        );
 
-        for (String python : pythonCandidates) {
+    private String findEsptool() {
+        for (String python : pythonCandidates()) {
             if (runCommand(python, "-m", "esptool", "version") != null) {
                 return python + " -m esptool";
             }
         }
 
-        // fallback standalone
-        for (String cmd : List.of(
-                "/opt/homebrew/bin/esptool.py",
-                "/usr/local/bin/esptool.py",
-                "esptool.py",
-                "esptool"
-        )) {
+        List<String> standalone = isWindows()
+                ? List.of("esptool.exe", "esptool.py", "esptool")
+                : List.of("/opt/homebrew/bin/esptool.py", "/usr/local/bin/esptool.py", "esptool.py", "esptool");
+        for (String cmd : standalone) {
             if (runCommand(cmd, "version") != null) {
                 return cmd;
             }
@@ -65,13 +84,9 @@ public class PrereqChecker {
             }
         }
 
-        List<String> candidates = List.of(
-                "/opt/homebrew/bin/pip3",
-                "/usr/local/bin/pip3",
-                "/usr/bin/pip3",
-                "pip3",
-                "pip"
-        );
+        List<String> candidates = isWindows()
+                ? List.of("pip", "pip3")
+                : List.of("/opt/homebrew/bin/pip3", "/usr/local/bin/pip3", "/usr/bin/pip3", "pip3", "pip");
 
         for (String cmd : candidates) {
             if (runCommand(cmd, "--version") != null) {
@@ -122,8 +137,10 @@ public class PrereqChecker {
                     .start();
             String output = new String(p.getInputStream().readAllBytes()).strip();
             int exit = p.waitFor();
+            System.err.println("[PrereqChecker] " + String.join(" ", args) + " -> exit=" + exit + " output=" + output.replace("\n", " | "));
             return (exit == 0 && !output.isEmpty()) ? output : null;
         } catch (Exception e) {
+            System.err.println("[PrereqChecker] " + String.join(" ", args) + " -> EXCEPTION: " + e.getMessage());
             return null;
         }
     }

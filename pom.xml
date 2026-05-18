@@ -17,6 +17,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<jpackage.type>DMG</jpackage.type>
 		<jpackage.icon>src/main/resources/icons/icon.icns</jpackage.icon>
+		<javafx.classifier>linux</javafx.classifier>
 	</properties>
 
 	<profiles>
@@ -28,6 +29,7 @@
 			<properties>
 				<jpackage.type>DMG</jpackage.type>
 				<jpackage.icon>src/main/resources/icons/icon.icns</jpackage.icon>
+				<javafx.classifier>mac</javafx.classifier>
 			</properties>
 		</profile>
 		<profile>
@@ -38,12 +40,13 @@
 			<properties>
 				<jpackage.type>MSI</jpackage.type>
 				<jpackage.icon>src/main/resources/icons/icon.ico</jpackage.icon>
+				<javafx.classifier>win</javafx.classifier>
 			</properties>
 		</profile>
 	</profiles>
 
 	<dependencies>
-		<!-- JavaFX -->
+		<!-- JavaFX classes (cross-platform) -->
 		<dependency>
 			<groupId>org.openjfx</groupId>
 			<artifactId>javafx-controls</artifactId>
@@ -63,6 +66,31 @@
 			<groupId>org.openjfx</groupId>
 			<artifactId>javafx-media</artifactId>
 			<version>21.0.2</version>
+		</dependency>
+		<!-- JavaFX native libs (OS-specific, classifier set by profile) -->
+		<dependency>
+			<groupId>org.openjfx</groupId>
+			<artifactId>javafx-controls</artifactId>
+			<version>21.0.2</version>
+			<classifier>${javafx.classifier}</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.openjfx</groupId>
+			<artifactId>javafx-graphics</artifactId>
+			<version>21.0.2</version>
+			<classifier>${javafx.classifier}</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.openjfx</groupId>
+			<artifactId>javafx-base</artifactId>
+			<version>21.0.2</version>
+			<classifier>${javafx.classifier}</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.openjfx</groupId>
+			<artifactId>javafx-media</artifactId>
+			<version>21.0.2</version>
+			<classifier>${javafx.classifier}</classifier>
 		</dependency>
 
 		<!-- Serial port -->
@@ -164,6 +192,10 @@
 					<destination>target/dist</destination>
 					<icon>${jpackage.icon}</icon>
 					<input>target</input>
+					<winMenu>true</winMenu>
+					<winShortcut>true</winShortcut>
+					<winDirChooser>true</winDirChooser>
+					<winMenuGroup>ESP Flasher</winMenuGroup>
 				</configuration>
 			</plugin>
 		</plugins>

@@ -23,6 +23,14 @@ public class PortWatcher {
             0x0403,  // FTDI
             0x303A   // Espressif native USB
     );
+    private static boolean isWindows() {
+        return System.getProperty("os.name", "").toLowerCase().contains("win");
+    }
+
+    private static String portIdentifier(SerialPort port) {
+        return isWindows() ? port.getSystemPortName() : port.getSystemPortPath();
+    }
+
     public static List<String> listEsp32Ports() {
         List<String> result = new ArrayList<>();
         boolean isMac = System.getProperty("os.name").toLowerCase().contains("mac");
@@ -30,9 +38,9 @@ public class PortWatcher {
         for (SerialPort port : SerialPort.getCommPorts()) {
             int vid = port.getVendorID();
             if (ESP32_VENDOR_IDS.contains(vid)) {
-                String path = port.getSystemPortPath();
-                if (isMac && path.contains("cu.")) continue;
-                result.add(path);
+                String id = portIdentifier(port);
+                if (isMac && id.contains("cu.")) continue;
+                result.add(id);
             }
         }
         return result;
@@ -80,10 +88,9 @@ public class PortWatcher {
         boolean isMac = System.getProperty("os.name").toLowerCase().contains("mac");
 
         for (SerialPort port : SerialPort.getCommPorts()) {
-            String path = port.getSystemPortPath();
-            // on Mac skip cu.* ports, only keep tty.*
-            if (isMac && path.contains("cu.")) continue;
-            ports.add(path);
+            String id = portIdentifier(port);
+            if (isMac && id.contains("cu.")) continue;
+            ports.add(id);
         }
         return ports;
     }
