@@ -1,0 +1,47 @@
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-mac:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'zulu'
+
+      - name: Build jar
+        run: mvn package
+
+      - name: Build DMG
+        run: mvn jpackage:jpackage
+
+      - name: Get version
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: ESP Flasher v${{ steps.version.outputs.VERSION }}
+          files: target/dist/*.dmg
+          body: |
+            ## ESP Flasher v${{ steps.version.outputs.VERSION }}
+            
+            ### Installation
+            - Download .dmg
+            - Drag to Applications
+            - If blocked: right click → Open
+            
+            ### Note
+            Unsigned build — run this if blocked:
+            `xattr -cr "/Applications/ESP Flasher (Beta).app"`
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
