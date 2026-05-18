@@ -1,0 +1,98 @@
+.root {
+    -fx-background-color: linear-gradient(
+            to bottom right,
+            #1c1c1e,
+            #2c2c2e
+    );
+}
+
+.config-card {
+    -fx-background-color: rgba(255, 255, 255, 0.05);
+    -fx-border-color: rgba(255, 255, 255, 0.1);
+    -fx-border-radius: 12;
+    -fx-background-radius: 12;
+    -fx-border-width: 1;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 10, 0, 0, 2);
+    -fx-padding: 15;
+}
+.label {
+    -fx-text-fill: #e0e0e0;
+}
+
+.text-field, .combo-box {
+    -fx-background-color: #2c2c2e;
+    -fx-text-fill: #e0e0e0;
+    -fx-border-color: #3a3a3c;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+}
+
+.button {
+    -fx-background-color: #3a3a3c;
+    -fx-text-fill: white;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+    -fx-cursor: hand;
+}
+
+.button:hover {
+    -fx-background-color: #4a4a4c;
+}
+
+.text-area {
+    -fx-control-inner-background: #141414;
+    -fx-text-fill: #ffffff;
+    -fx-font-family: "Consolas", "Courier New", monospace;
+    -fx-font-size: 11px;
+}
+
+.progress-bar > .track {
+    -fx-background-color: #3a3a3c;
+    -fx-background-radius: 4;
+}
+
+.progress-bar > .bar {
+    -fx-background-radius: 4;
+}
+
+.combo-box .list-cell {
+    -fx-text-fill: #e0e0e0;
+    -fx-background-color: #2c2c2e;
+}
+
+.combo-box-popup .list-view {
+    -fx-background-color: #2c2c2e;
+    -fx-border-color: #3a3a3c;
+}
+
+.combo-box-popup .list-cell:hover {
+    -fx-background-color: #4a4a4c;
+}
+
+.combo-box > .button {
+    -fx-background-color: #3a3a3c;
+}
+
+.combo-box .arrow {
+    -fx-background-color: #e0e0e0;
+}
+.combo-box .arrow-button {
+    -fx-background-color: #2c2c2e;
+    -fx-border-color: #3a3a3c;
+}
+
+.combo-box:hover .arrow-button {
+    -fx-background-color: #3a3a3c;
+}
+
+.flash-badge {
+    -fx-background-color: rgba(255, 255, 255, 0.1);
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+    -fx-padding: 4 12 4 12;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-border-color: rgba(255, 255, 255, 0.2);
+    -fx-border-width: 1;
+}

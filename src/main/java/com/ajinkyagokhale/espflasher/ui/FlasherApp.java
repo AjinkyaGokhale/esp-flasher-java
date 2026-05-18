@@ -51,6 +51,10 @@ public class FlasherApp extends Application implements FlashListener, PortListen
     private AudioClip successSound;
     private AudioClip failSound;
 
+    //flashcounter
+    private int flashCount = 0;
+    private Label flashCountLabel;
+
 
     @Override
     public void onProgress(int percent) {
@@ -75,11 +79,16 @@ public class FlasherApp extends Application implements FlashListener, PortListen
             factoryButton.setDisable(false);
             stopButton.setDisable(true);
             if (success) {
+                flashCount++;
+                flashCountLabel.setText("Flashed: " + flashCount);
+                progressBar.setStyle("-fx-accent: green;");
                 progressBar.setProgress(1.0);
                 successSound.play();
                 statusLabel.setStyle("-fx-text-fill: green;");
             } else {
                 failSound.play();
+                progressBar.setStyle("-fx-accent: red;");
+                progressBar.setProgress(1.0);
                 statusLabel.setStyle("-fx-text-fill: red;");
             }
         });
@@ -145,6 +154,7 @@ public class FlasherApp extends Application implements FlashListener, PortListen
             statusLabel.setText("esptool not found. Please install it first.");
             return;
         }
+
         // 1. validate inputs
         String binPath = binPathField.getText();
         if (binPath.isEmpty()) {
@@ -171,6 +181,7 @@ public class FlasherApp extends Application implements FlashListener, PortListen
         // 3. update UI
         flashButton.setDisable(true);
         stopButton.setDisable(false);
+        progressBar.setStyle("");
         progressBar.setProgress(0);
         statusLabel.setText("Flashing...");
 
@@ -259,8 +270,34 @@ public class FlasherApp extends Application implements FlashListener, PortListen
         });
     }
 
+    private boolean isDarkMode() {
+        String os = System.getProperty("os.name").toLowerCase();
+        try {
+            if (os.contains("mac")) {
+                Process p = Runtime.getRuntime().exec(
+                        new String[]{"defaults", "read", "-g", "AppleInterfaceStyle"}
+                );
+                String result = new String(p.getInputStream().readAllBytes()).strip();
+                return result.equalsIgnoreCase("dark");
+            } else if (os.contains("windows")) {
+                Process p = Runtime.getRuntime().exec(new String[]{
+                        "reg", "query",
+                        "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+                        "/v", "AppsUseLightTheme"
+                });
+                String result = new String(p.getInputStream().readAllBytes());
+                return result.contains("0x0");
+            }
+        } catch (Exception e) {
+            return false;
+        }
+        return false;
+    }
+
+
     @Override
     public void start(Stage primaryStage) throws Exception {
+
 
         esptoolRunner = new EsptoolRunner();
         portWatcher = new PortWatcher();
@@ -286,6 +323,11 @@ public class FlasherApp extends Application implements FlashListener, PortListen
         root.setPadding(new Insets(20));
 
         Scene scene = new Scene(root);
+        if (isDarkMode()) {
+            scene.getStylesheets().add(
+                    getClass().getResource("/styles.css").toExternalForm()
+            );
+        }
         primaryStage.setScene(scene);
         // File row
         binPathField = new TextField();
@@ -299,7 +341,7 @@ public class FlasherApp extends Application implements FlashListener, PortListen
         HBox fileRow = new HBox(10, new Label("Firmware"), binPathField, browseButton);
         fileRow.setAlignment(Pos.CENTER_LEFT);
 
-        root.getChildren().add(fileRow);
+        //root.getChildren().add(fileRow);
 
         // Chip row
         chipCombo = new ComboBox<>();
@@ -312,7 +354,7 @@ public class FlasherApp extends Application implements FlashListener, PortListen
         HBox chipRow = new HBox(10, new Label("Chip"), chipCombo);
         chipRow.setAlignment(Pos.CENTER_LEFT);
 
-        root.getChildren().add(chipRow);
+        //root.getChildren().add(chipRow);
         // Port row
         portCombo = new ComboBox<>();
         portCombo.setEditable(true);
@@ -324,7 +366,7 @@ public class FlasherApp extends Application implements FlashListener, PortListen
         HBox portRow = new HBox(10, new Label("Port"), portCombo, refreshButton);
         portRow.setAlignment(Pos.CENTER_LEFT);
 
-        root.getChildren().add(portRow);
+        //root.getChildren().add(portRow);
 
         // Baud row
         baudCombo = new ComboBox<>();
@@ -335,7 +377,7 @@ public class FlasherApp extends Application implements FlashListener, PortListen
 
         HBox baudRow = new HBox(10, new Label("Baud Rate"), baudCombo);
         baudRow.setAlignment(Pos.CENTER_LEFT);
-        root.getChildren().add(baudRow);
+        //root.getChildren().add(baudRow);
 
 // Offset row
         flashOffsetField = new TextField("0x0");
@@ -343,7 +385,13 @@ public class FlasherApp extends Application implements FlashListener, PortListen
 
         HBox offsetRow = new HBox(10, new Label("Flash Offset"), flashOffsetField);
         offsetRow.setAlignment(Pos.CENTER_LEFT);
-        root.getChildren().add(offsetRow);
+        //root.getChildren().add(offsetRow);
+        VBox configCard = new VBox(10);
+        configCard.getStyleClass().add("config-card");
+        configCard.getChildren().addAll(
+                fileRow, chipRow, portRow, baudRow, offsetRow
+        );
+        root.getChildren().add(configCard);
         // Buttons row
         flashButton = new Button("Flash Once");
         flashButton.setOnAction(e -> startFlash());
@@ -351,11 +399,17 @@ public class FlasherApp extends Application implements FlashListener, PortListen
         factoryButton = new Button("Factory Mode");
         factoryButton.setOnAction(e -> startFactoryMode());
 
+
+
+        flashCountLabel = new Label("Flashed: 0");
+        flashCountLabel.getStyleClass().add("flash-badge");
+
         stopButton = new Button("Stop");
         stopButton.setOnAction(e -> stopAll());
         stopButton.setDisable(true);
 
-        HBox buttonRow = new HBox(10, flashButton, factoryButton, stopButton);
+        HBox buttonRow = new HBox(10, flashButton, factoryButton, stopButton, flashCountLabel);
+
         root.getChildren().add(buttonRow);
 // Progress bar
         progressBar = new ProgressBar(0);
