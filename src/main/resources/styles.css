@@ -96,3 +96,51 @@
     -fx-border-color: rgba(255, 255, 255, 0.2);
     -fx-border-width: 1;
 }
+
+.footer {
+    -fx-text-fill: #444444;
+    -fx-font-size: 11px;
+    -fx-padding: 6 0 4 0;
+}
+
+.footer:hover {
+    -fx-text-fill: #888888;
+}
+
+/* ── About dialog ────────────────────────────────────── */
+.about-dialog {
+    -fx-background-color: #1c1c1e;
+}
+
+.about-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+.about-version {
+    -fx-text-fill: #888888;
+    -fx-font-size: 12px;
+}
+
+.about-author {
+    -fx-text-fill: #e0e0e0;
+    -fx-font-size: 13px;
+}
+
+.about-link {
+    -fx-text-fill: #a0a0a0;
+    -fx-font-size: 12px;
+    -fx-cursor: hand;
+    -fx-underline: true;
+}
+
+.about-link:hover {
+    -fx-text-fill: #ffffff;
+    -fx-underline: true;
+}
+
+.about-license {
+    -fx-text-fill: #666666;
+    -fx-font-size: 11px;
+}

@@ -299,8 +299,55 @@ public class FlasherApp extends Application implements FlashListener, PortListen
         }
         return false;
     }
+    private void showAboutDialog() {
+        Stage dialog = new Stage();
+        dialog.setTitle("About");
+        dialog.setResizable(false);
 
+        VBox content = new VBox(12);
+        content.setPadding(new Insets(24));
+        content.setAlignment(Pos.CENTER);
+        content.getStyleClass().add("about-dialog");
 
+        Label title = new Label("⚡ ESP Flasher");
+        title.getStyleClass().add("about-title");
+
+        Label version = new Label("v1.0.0");
+        version.getStyleClass().add("about-version");
+
+        Separator sep = new Separator();
+        sep.setStyle("-fx-background-color: #3a3a3c;");
+
+        Label author = new Label("Built by Ajinkya Gokhale");
+        author.getStyleClass().add("about-author");
+
+        Label email = new Label("✉  hi@ajinkyagokhale.com");
+        email.getStyleClass().add("about-link");
+        email.setOnMouseClicked(e ->
+                getHostServices().showDocument("mailto:hi@ajinkyagokhale.com"));
+
+        Label github = new Label("⚡  github.com/ajinkyagokhale");
+        github.getStyleClass().add("about-link");
+        github.setOnMouseClicked(e ->
+                getHostServices().showDocument("https://github.com/ajinkyagokhale"));
+
+        Label license = new Label("MIT License — 2026");
+        license.getStyleClass().add("about-license");
+
+        Button closeBtn = new Button("Close");
+        closeBtn.setOnAction(e -> dialog.close());
+        closeBtn.setPrefWidth(100);
+
+        content.getChildren().addAll(
+                title, version, sep,
+                author, email, github,
+                license, closeBtn
+        );
+
+        Scene scene = new Scene(content, 280, 280);
+        dialog.setScene(scene);
+        dialog.show();
+    }
     @Override
     public void start(Stage primaryStage) throws Exception {
 
@@ -414,6 +461,10 @@ public class FlasherApp extends Application implements FlashListener, PortListen
         stopButton.setOnAction(e -> stopAll());
         stopButton.setDisable(true);
 
+//        Button aboutButton = new Button("About");
+//        aboutButton.setOnAction(e -> showAboutDialog());
+
+
         HBox buttonRow = new HBox(10, flashButton, factoryButton, stopButton, flashCountLabel);
 
         root.getChildren().add(buttonRow);
@@ -432,6 +483,16 @@ public class FlasherApp extends Application implements FlashListener, PortListen
         VBox.setVgrow(logArea, Priority.ALWAYS);
 
         root.getChildren().add(logArea);
+
+        //footer
+        Label footer = new Label("Built with ❤ by Ajinkya Gokhale");
+        footer.setMaxWidth(Double.MAX_VALUE);
+        footer.setAlignment(Pos.CENTER);
+        footer.getStyleClass().add("footer");
+
+        root.getChildren().add(footer);
+        footer.setOnMouseClicked(e -> showAboutDialog());
+        footer.setStyle("-fx-cursor: hand;");
         primaryStage.show();
 
 
