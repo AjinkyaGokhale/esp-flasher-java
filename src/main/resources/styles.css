@@ -144,3 +144,48 @@
     -fx-text-fill: #666666;
     -fx-font-size: 11px;
 }
+/* ── Confirmation dialog ─────────────────────────────── */
+.confirm-bin-name {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #e0e0e0;
+}
+
+.confirm-details {
+    -fx-text-fill: #888888;
+    -fx-font-size: 12px;
+}
+/* ── Dialog pane ─────────────────────────────────────── */
+.dialog-pane {
+    -fx-background-color: #1c1c1e;
+}
+
+.dialog-pane .header-panel {
+    -fx-background-color: #1c1c1e;
+}
+
+.dialog-pane .header-panel .label {
+    -fx-text-fill: #e0e0e0;
+    -fx-font-size: 14px;
+}
+
+.dialog-pane .content {
+    -fx-background-color: #1c1c1e;
+    -fx-padding: 16 20 8 20;
+}
+
+.dialog-pane .button-bar {
+    -fx-background-color: #1c1c1e;
+    -fx-padding: 8 16 16 16;
+}
+
+.dialog-pane .button-bar .button {
+    -fx-background-color: #3a3a3c;
+    -fx-text-fill: white;
+    -fx-background-radius: 6;
+    -fx-padding: 6 16 6 16;
+}
+
+.dialog-pane .button-bar .button:hover {
+    -fx-background-color: #4a4a4c;
+}

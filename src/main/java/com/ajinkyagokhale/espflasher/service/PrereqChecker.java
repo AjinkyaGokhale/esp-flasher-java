@@ -10,24 +10,46 @@ public class PrereqChecker {
 
 
     private String findPython() {
-        for (String cmd : List.of("python3", "python", "py")) {
+        // try full paths first for packaged app
+        List<String> candidates = List.of(
+                "/opt/homebrew/bin/python3",      // Mac Homebrew
+                "/usr/local/bin/python3",          // Mac standard
+                "/usr/bin/python3",                // Mac system
+                "python3",                         // fallback
+                "python",
+                "py"
+        );
+
+        for (String cmd : candidates) {
             if (runCommand(cmd, "--version") != null) {
                 return cmd;
             }
         }
         return null;
     }
-
     private String findEsptool() {
-        // try python module first — most reliable
-        if (pythonCmd != null) {
-            if (runCommand(pythonCmd, "-m", "esptool", "version") != null) {
-                return pythonCmd + " -m esptool";
+        // try full python paths first
+        List<String> pythonCandidates = List.of(
+                "/opt/homebrew/bin/python3",
+                "/usr/local/bin/python3",
+                "/usr/bin/python3",
+                "python3",
+                "python"
+        );
+
+        for (String python : pythonCandidates) {
+            if (runCommand(python, "-m", "esptool", "version") != null) {
+                return python + " -m esptool";
             }
         }
 
-        // fallback — try standalone commands
-        for (String cmd : List.of("esptool.py", "esptool")) {
+        // fallback standalone
+        for (String cmd : List.of(
+                "/opt/homebrew/bin/esptool.py",
+                "/usr/local/bin/esptool.py",
+                "esptool.py",
+                "esptool"
+        )) {
             if (runCommand(cmd, "version") != null) {
                 return cmd;
             }
@@ -42,12 +64,21 @@ public class PrereqChecker {
                 return pythonCmd + " -m pip";
             }
         }
-        // fallback
-        for (String cmd : List.of("pip3", "pip")) {
+
+        List<String> candidates = List.of(
+                "/opt/homebrew/bin/pip3",
+                "/usr/local/bin/pip3",
+                "/usr/bin/pip3",
+                "pip3",
+                "pip"
+        );
+
+        for (String cmd : candidates) {
             if (runCommand(cmd, "--version") != null) {
                 return cmd;
             }
         }
+
         return null;
     }
 

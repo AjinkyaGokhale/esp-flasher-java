@@ -210,6 +210,7 @@ public class FlasherApp extends Application implements FlashListener, PortListen
     }
 
     private void startFactoryMode() {
+
         if (binPathField.getText().isEmpty()) {
             Alert alert = new Alert(Alert.AlertType.WARNING);
             alert.setTitle("No Firmware Selected");
@@ -222,6 +223,7 @@ public class FlasherApp extends Application implements FlashListener, PortListen
             statusLabel.setText("esptool not ready.");
             return;
         }
+
 
         isFactoryMode = true;
 
@@ -242,14 +244,18 @@ public class FlasherApp extends Application implements FlashListener, PortListen
 
 // big font bin file name
         Label binLabel = new Label(new File(binPathField.getText()).getName());
-        binLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #1a1a1a;");
+        binLabel.getStyleClass().add("confirm-bin-name");
 
         Label chipLabel = new Label("Chip: " + chipCombo.getValue() + "   Baud: " + baudCombo.getValue());
-        chipLabel.setStyle("-fx-text-fill: #666666; -fx-font-size: 12px;");
+        chipLabel.getStyleClass().add("confirm-details");
 
         VBox content = new VBox(8, binLabel, chipLabel);
         confirm.getDialogPane().setContent(content);
-
+        // add this here ↓
+        confirm.getDialogPane().getStylesheets().add(
+                getClass().getResource("/styles.css").toExternalForm()
+        );
+        confirm.setGraphic(null);  //
         ButtonType startBtn = new ButtonType("Start Factory", ButtonBar.ButtonData.OK_DONE);
         ButtonType cancelBtn = new ButtonType("Cancel", ButtonBar.ButtonData.CANCEL_CLOSE);
         confirm.getButtonTypes().setAll(startBtn, cancelBtn);
@@ -431,6 +437,15 @@ public class FlasherApp extends Application implements FlashListener, PortListen
 
     @Override
     public void start(Stage primaryStage) throws Exception {
+        // set app icon
+        String os = System.getProperty("os.name").toLowerCase();
+        String iconFile = os.contains("mac") ? "/icons/icon.icns" : "/icons/icon.ico";
+        var iconUrl = getClass().getResource(iconFile);
+        if (iconUrl != null) {
+            primaryStage.getIcons().add(
+                    new javafx.scene.image.Image(iconUrl.toExternalForm())
+            );
+        }
 
 
         esptoolRunner = new EsptoolRunner();
