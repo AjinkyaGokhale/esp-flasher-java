@@ -12,8 +12,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class EsptoolRunner {
-    private Process currentProcess;
-    private boolean isCancelled;
+    private volatile Process currentProcess;
+    private volatile boolean isCancelled;
 
     public void startFlashing(FlashConfig config, FlashListener listener) {
 
@@ -41,16 +41,18 @@ public class EsptoolRunner {
                 pb.redirectErrorStream(true);
                 currentProcess = pb.start();
 
-                BufferedReader reader = new BufferedReader(new InputStreamReader(currentProcess.getInputStream()));
-                String line;
                 Pattern pattern = Pattern.compile("(\\d+(?:\\.\\d+)?)\\s*%");
-                while ((line = reader.readLine()) != null) {
-                    if (isCancelled) break;
-                    listener.onLog(line);
-                    Matcher matcher = pattern.matcher(line);
-                    if (matcher.find()) {
-                        int percent = (int) Double.parseDouble(matcher.group(1));
-                        listener.onProgress(percent);
+                try (BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(currentProcess.getInputStream()))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        if (isCancelled) break;
+                        listener.onLog(line);
+                        Matcher matcher = pattern.matcher(line);
+                        if (matcher.find()) {
+                            int percent = (int) Double.parseDouble(matcher.group(1));
+                            listener.onProgress(percent);
+                        }
                     }
                 }
                 int exitCode = currentProcess.waitFor();

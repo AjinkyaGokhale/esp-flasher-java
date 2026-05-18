@@ -6,6 +6,7 @@ import com.ajinkyagokhale.espflasher.model.FlashConfig;
 import com.ajinkyagokhale.espflasher.service.EsptoolRunner;
 import com.ajinkyagokhale.espflasher.service.PortWatcher;
 import com.ajinkyagokhale.espflasher.service.PrereqChecker;
+import com.ajinkyagokhale.espflasher.service.UpdateService;
 import com.fazecast.jSerialComm.SerialPort;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -21,6 +22,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 import javafx.scene.media.AudioClip;
@@ -31,6 +33,7 @@ import java.io.File;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class FlasherApp extends Application implements FlashListener, PortListener {
     // UI Controls
@@ -437,6 +440,7 @@ public class FlasherApp extends Application implements FlashListener, PortListen
 
     @Override
     public void start(Stage primaryStage) throws Exception {
+        checkForUpdates();
         // set app icon
         String os = System.getProperty("os.name").toLowerCase();
         String iconFile = os.contains("mac") ? "/icons/icon.icns" : "/icons/icon.ico";
@@ -591,5 +595,103 @@ public class FlasherApp extends Application implements FlashListener, PortListen
 
 
     } //start-end
+
+    private void checkForUpdates() {
+        Thread worker = new Thread(() -> {
+            UpdateService updates = new UpdateService();
+            String current = updates.currentVersion();
+            updates.latestRelease()
+                    .filter(release -> updates.isNewer(release.version(), current))
+                    .ifPresent(release ->
+                            Platform.runLater(() -> promptForcedUpdate(updates, release, current)));
+        }, "update-check");
+        worker.setDaemon(true);
+        worker.start();
+    }
+
+    private void promptForcedUpdate(UpdateService updates, UpdateService.Release release, String current) {
+        ButtonType updateNow = new ButtonType("Update Now", ButtonBar.ButtonData.OK_DONE);
+        ButtonType quit = new ButtonType("Quit", ButtonBar.ButtonData.CANCEL_CLOSE);
+
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Update Required");
+        alert.setHeaderText("A new version of ESP Flasher is available");
+        alert.setContentText("Installed: " + current + "\nLatest: " + release.version()
+                + "\n\nYou must update to continue.");
+        alert.getButtonTypes().setAll(updateNow, quit);
+        alert.initModality(Modality.APPLICATION_MODAL);
+
+        Optional<ButtonType> choice = alert.showAndWait();
+        while (choice.isEmpty()) {
+            choice = alert.showAndWait();
+        }
+
+        if (choice.get() == updateNow) {
+            downloadUpdate(updates, release);
+        } else {
+            System.exit(0);
+        }
+    }
+
+    private void downloadUpdate(UpdateService updates, UpdateService.Release release) {
+        AtomicBoolean cancelled = new AtomicBoolean(false);
+
+        ProgressBar bar = new ProgressBar(0);
+        bar.setPrefWidth(380);
+        Label info = new Label("Starting download...");
+        Label hint = new Label("The app will restart to install the update.");
+        hint.getStyleClass().add("footer");
+        VBox box = new VBox(10, info, bar, hint);
+        box.setPadding(new Insets(16));
+
+        ButtonType cancelType = new ButtonType("Cancel", ButtonBar.ButtonData.CANCEL_CLOSE);
+        Alert dialog = new Alert(Alert.AlertType.NONE);
+        dialog.setTitle("Downloading Update");
+        dialog.setHeaderText("Updating to " + release.version());
+        dialog.getDialogPane().setContent(box);
+        dialog.getButtonTypes().setAll(cancelType);
+        dialog.initModality(Modality.APPLICATION_MODAL);
+        dialog.setOnHidden(e -> cancelled.set(true));
+
+        Thread worker = new Thread(() -> {
+            try {
+                updates.downloadAndLaunch(release,
+                        (downloaded, total) -> Platform.runLater(
+                                () -> updateProgress(bar, info, downloaded, total)),
+                        cancelled);
+                Platform.runLater(() -> {
+                    dialog.close();
+                    promptForcedUpdate(updates, release, updates.currentVersion());
+                });
+            } catch (Exception e) {
+                Platform.runLater(() -> {
+                    dialog.close();
+                    Alert error = new Alert(Alert.AlertType.ERROR);
+                    error.setTitle("Update Failed");
+                    error.setHeaderText("Could not download the update");
+                    error.setContentText(e.getMessage());
+                    error.showAndWait();
+                    promptForcedUpdate(updates, release, updates.currentVersion());
+                });
+            }
+        }, "update-download");
+        worker.setDaemon(true);
+        worker.start();
+
+        dialog.show();
+    }
+
+    private void updateProgress(ProgressBar bar, Label info, long downloaded, long total) {
+        double mb = downloaded / 1048576.0;
+        if (total > 0) {
+            double fraction = (double) downloaded / total;
+            bar.setProgress(fraction);
+            info.setText(String.format("%.1f MB / %.1f MB  (%d%%)",
+                    mb, total / 1048576.0, (int) (fraction * 100)));
+        } else {
+            bar.setProgress(ProgressBar.INDETERMINATE_PROGRESS);
+            info.setText(String.format("%.1f MB downloaded", mb));
+        }
+    }
 
 }

@@ -103,7 +103,7 @@ Pre-built installers are published on the [GitHub Releases](../../releases) page
 The build is currently unsigned. If macOS Gatekeeper blocks the app, run:
 
 ```bash
-xattr -cr "/Applications/ESP Flasher (Beta).app"
+xattr -cr "/Applications/ESP Flasher.app"
 ```
 
 ### Windows — first launch
@@ -244,7 +244,7 @@ git push origin v1.0.2
 | "esptool not found — click here to install"          | Click the status label, or run `python3 -m pip install esptool` manually.                                      |
 | No ports listed                                      | Install your board's USB-to-serial driver (CP210x, CH340, or FTDI), then click **Refresh**.                    |
 | "Failed to connect to ESP*: Timed out"               | Hold the BOOT button while plugging in or starting the flash. Try a lower baud (e.g. `115200`).                |
-| macOS: "App is damaged and can't be opened"          | `xattr -cr "/Applications/ESP Flasher (Beta).app"`                                                              |
+| macOS: "App is damaged and can't be opened"          | `xattr -cr "/Applications/ESP Flasher.app"`                                                              |
 | Flash succeeds but firmware does not run             | Check the **Flash Offset**. Many ESP32 boards expect `0x1000` or `0x10000` instead of `0x0`.                    |
 
 Full `esptool` output is always available in the log area at the bottom of the window — copy it when filing an issue.

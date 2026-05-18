@@ -103,21 +103,15 @@ public class PrereqChecker {
             cmd.add("--break-system-packages");
             cmd.add("esptool");
 
-            System.out.println("Running: " + cmd);  // ← add this
-
             Process p = new ProcessBuilder(cmd)
                     .redirectErrorStream(true)
                     .start();
 
-            // print output so we can see what happened
-            String output = new String(p.getInputStream().readAllBytes());
-            System.out.println("Output: " + output);  // ← add this
-
+            p.getInputStream().readAllBytes();
             p.waitFor();
             checkAll();
             return esptoolCmd != null;
         } catch (Exception e) {
-            System.out.println("Exception: " + e.getMessage());  // ← add this
             return false;
         }
     }

@@ -27,14 +27,6 @@ jobs:
         with:
           name: ESP Flasher v${{ steps.version.outputs.VERSION }}
           files: target/dist/*.dmg
-          body: |
-            ## ESP Flasher v${{ steps.version.outputs.VERSION }}
-            ### Downloads
-            - **Mac**: ESP-Flasher.dmg
-            - **Windows**: ESP-Flasher.msi
-            ### Note
-            Unsigned build — if blocked on Mac:
-            `xattr -cr "/Applications/ESP Flasher (Beta).app"`
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
