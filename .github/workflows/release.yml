@@ -17,8 +17,9 @@ jobs:
         with:
           java-version: '21'
           distribution: 'zulu'
-      - run: mvn package
-      - run: mvn jpackage:jpackage
+          cache: 'maven'
+      - run: mvn -B package
+      - run: mvn -B jpackage:jpackage
       - name: Get version
         id: version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
@@ -45,8 +46,12 @@ jobs:
         with:
           java-version: '21'
           distribution: 'zulu'
-      - run: mvn package
-      - run: mvn jpackage:jpackage -Djpackage.type=MSI
+          cache: 'maven'
+      - run: mvn -B package
+      # The `windows` Maven profile in pom.xml auto-activates on Windows and
+      # already sets jpackage.type=MSI, so no extra -D flag is needed here.
+      # (Passing -Djpackage.type=MSI on PowerShell breaks argument parsing.)
+      - run: mvn -B jpackage:jpackage
       - name: Get version
         id: version
         run: echo "VERSION=$($env:GITHUB_REF -replace 'refs/tags/v','')" >> $env:GITHUB_OUTPUT
