@@ -26,6 +26,7 @@ import javafx.stage.Stage;
 import javafx.scene.media.AudioClip;
 import java.awt.*;
 import java.io.File;
+import java.util.List;
 import java.util.Objects;
 
 public class FlasherApp extends Application implements FlashListener, PortListener {
@@ -212,8 +213,13 @@ public class FlasherApp extends Application implements FlashListener, PortListen
 
     private void refreshPorts() {
         portCombo.getItems().clear();
-        for (SerialPort port : SerialPort.getCommPorts()) {
-            portCombo.getItems().add(port.getSystemPortPath());
+        List<String> espPorts = PortWatcher.listEsp32Ports();
+
+        if (espPorts.isEmpty()) {
+            portCombo.setPromptText("No ESP32 detected...");
+        } else {
+            portCombo.getItems().addAll(espPorts);
+            portCombo.getSelectionModel().selectFirst();  // auto select first ESP32
         }
     }
     private void installEsptool() {

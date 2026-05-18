@@ -3,7 +3,9 @@ package com.ajinkyagokhale.espflasher.service;
 import com.ajinkyagokhale.espflasher.listener.PortListener;
 import com.fazecast.jSerialComm.SerialPort;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -14,6 +16,24 @@ public class PortWatcher {
     private Set<String> previousPorts;
     private boolean isWatching;
     private ScheduledExecutorService scheduler;
+
+    private static final List<Integer> ESP32_VENDOR_IDS = List.of(
+            0x10C4,  // Silicon Labs CP2102
+            0x1A86,  // WCH CH340
+            0x0403,  // FTDI
+            0x303A   // Espressif native USB
+    );
+    public static List<String> listEsp32Ports() {
+        List<String> result = new ArrayList<>();
+        for (SerialPort port : SerialPort.getCommPorts()) {
+            int vid = port.getVendorID();
+            if (ESP32_VENDOR_IDS.contains(vid)) {
+                result.add(port.getSystemPortPath());
+            }
+        }
+        return result;
+    }
+
 
 
     public void startWatching(PortListener listener) {
