@@ -15,7 +15,32 @@
 		<maven.compiler.source>17</maven.compiler.source>
 		<maven.compiler.target>17</maven.compiler.target>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<jpackage.type>DMG</jpackage.type>
+		<jpackage.icon>src/main/resources/icons/icon.icns</jpackage.icon>
 	</properties>
+
+	<profiles>
+		<profile>
+			<id>mac</id>
+			<activation>
+				<os><family>mac</family></os>
+			</activation>
+			<properties>
+				<jpackage.type>DMG</jpackage.type>
+				<jpackage.icon>src/main/resources/icons/icon.icns</jpackage.icon>
+			</properties>
+		</profile>
+		<profile>
+			<id>windows</id>
+			<activation>
+				<os><family>windows</family></os>
+			</activation>
+			<properties>
+				<jpackage.type>MSI</jpackage.type>
+				<jpackage.icon>src/main/resources/icons/icon.ico</jpackage.icon>
+			</properties>
+		</profile>
+	</profiles>
 
 	<dependencies>
 		<!-- JavaFX -->
@@ -112,9 +137,9 @@
 					<vendor>Ajinkya Gokhale</vendor>
 					<mainJar>espflasher-1.0.1.jar</mainJar>
 					<mainClass>com.ajinkyagokhale.espflasher.EspflasherApplication</mainClass>
-					<type>DMG</type>
+					<type>${jpackage.type}</type>
 					<destination>target/dist</destination>
-					<icon>src/main/resources/icons/icon.icns</icon>
+					<icon>${jpackage.icon}</icon>
 					<input>target</input>
 				</configuration>
 			</plugin>
