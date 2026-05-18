@@ -15,7 +15,7 @@ public class EsptoolRunner {
     private Process currentProcess;
     private boolean isCancelled;
 
-    public void startFlashing(FlashConfig config, FlashListener listener){
+    public void startFlashing(FlashConfig config, FlashListener listener) {
 
         isCancelled = false;
 
@@ -29,6 +29,7 @@ public class EsptoolRunner {
             command.add(config.chip());
             command.add("--port");
             command.add(config.port());
+            command.add("--baud");
             command.add(String.valueOf(config.baudRate()));
             command.add("write_flash");
             command.add(config.flashOffset());
@@ -42,13 +43,13 @@ public class EsptoolRunner {
 
                 BufferedReader reader = new BufferedReader(new InputStreamReader(currentProcess.getInputStream()));
                 String line;
-                Pattern pattern = Pattern.compile("\\((\\d+)\\s*%\\)");// finds (12 %) <--
+                Pattern pattern = Pattern.compile("(\\d+(?:\\.\\d+)?)\\s*%");
                 while ((line = reader.readLine()) != null) {
                     if (isCancelled) break;
                     listener.onLog(line);
                     Matcher matcher = pattern.matcher(line);
                     if (matcher.find()) {
-                        int percent = Integer.parseInt(matcher.group(1));
+                        int percent = (int) Double.parseDouble(matcher.group(1));
                         listener.onProgress(percent);
                     }
                 }
