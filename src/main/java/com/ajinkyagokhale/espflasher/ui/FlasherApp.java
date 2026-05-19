@@ -122,50 +122,66 @@ public class FlasherApp extends Application implements FlashListener, PortListen
         flashButton.setDisable(true);
         factoryButton.setDisable(true);
 
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle("Python Not Found");
-        alert.setHeaderText("Python is required to run esptool");
-        alert.setContentText("Please install Python 3, then restart this app.");
+        Stage dialog = new Stage();
+        dialog.initModality(Modality.APPLICATION_MODAL);
+        dialog.setTitle("Python Not Found");
+        dialog.setResizable(false);
 
-        ButtonType downloadBtn = new ButtonType("Download Python");
-        ButtonType closeBtn = new ButtonType("Close", ButtonBar.ButtonData.CANCEL_CLOSE);
-        alert.getButtonTypes().setAll(downloadBtn, closeBtn);
+        Label heading = new Label("Python 3 is required to run esptool.");
+        heading.setStyle("-fx-font-weight: bold; -fx-font-size: 13px;");
 
-        alert.showAndWait().ifPresent(btn -> {
-            if (btn == downloadBtn) {
-                getHostServices().showDocument("https://python.org");
-            }
-        });
+        String os = System.getProperty("os.name", "").toLowerCase();
+        String steps;
+        if (os.contains("win")) {
+            steps = "1. Go to https://python.org/downloads\n"
+                  + "2. Download the latest Python 3 installer for Windows.\n"
+                  + "3. Run the installer — check \"Add Python to PATH\" before clicking Install.\n"
+                  + "4. Restart ESP Flasher after installation.";
+        } else if (os.contains("mac")) {
+            steps = "Option A — Homebrew (recommended):\n"
+                  + "  brew install python3\n\n"
+                  + "Option B — Installer:\n"
+                  + "1. Go to https://python.org/downloads\n"
+                  + "2. Download and run the macOS installer.\n"
+                  + "3. Restart ESP Flasher after installation.";
+        } else {
+            steps = "Debian / Ubuntu:\n"
+                  + "  sudo apt install python3 python3-pip\n\n"
+                  + "Fedora / RHEL:\n"
+                  + "  sudo dnf install python3\n\n"
+                  + "Arch:\n"
+                  + "  sudo pacman -S python\n\n"
+                  + "Restart ESP Flasher after installation.";
+        }
+
+        TextArea guide = new TextArea(steps);
+        guide.setEditable(false);
+        guide.setWrapText(true);
+        guide.setPrefHeight(140);
+        guide.setPrefWidth(400);
+        guide.setStyle("-fx-font-family: monospace; -fx-font-size: 11px;");
+
+        Button downloadBtn = new Button("Open python.org");
+        downloadBtn.setOnAction(e -> getHostServices().showDocument("https://python.org/downloads"));
+
+        Button closeBtn = new Button("Close");
+        closeBtn.setOnAction(e -> dialog.close());
+
+        HBox buttons = new HBox(10, downloadBtn, closeBtn);
+        buttons.setAlignment(Pos.CENTER_RIGHT);
+
+        VBox root = new VBox(12, heading, guide, buttons);
+        root.setPadding(new Insets(16));
+
+        dialog.setScene(new Scene(root));
+        dialog.showAndWait();
 
         statusLabel.setText("⚠ Python not found — install Python and restart.");
         statusLabel.setStyle("-fx-text-fill: red;");
     }
 
     private void autoInstallEsptool() {
-        flashButton.setDisable(true);
-        factoryButton.setDisable(true);
-        progressBar.setProgress(ProgressBar.INDETERMINATE_PROGRESS);
-        statusLabel.setText("Installing esptool, please wait...");
-
-        Thread thread = new Thread(() -> {
-            boolean success = prereqChecker.installEsptool();
-
-            Platform.runLater(() -> {
-                progressBar.setProgress(0);
-                if (success) {
-                    statusLabel.setText("Ready.");
-                    statusLabel.setStyle("");
-                    flashButton.setDisable(false);
-                    factoryButton.setDisable(false);
-                    logArea.appendText("✓ esptool installed successfully.\n");
-                } else {
-                    statusLabel.setText("⚠ esptool install failed — check log.");
-                    logArea.appendText("✗ esptool install failed.\n");
-                }
-            });
-        });
-        thread.setDaemon(true);
-        thread.start();
+        showEsptoolInstallDialog();
     }
 
     private void startFlash(String overridePort) {
@@ -378,28 +394,77 @@ public class FlasherApp extends Application implements FlashListener, PortListen
     }
 
     private void installEsptool() {
-        if (prereqChecker.getPipCmd() == null) {
-            statusLabel.setText("pip not found — install Python first.");
+        statusLabel.setStyle("");
+        statusLabel.setOnMouseClicked(null);
+        if (prereqChecker.getPythonCmd() == null) {
+            showPythonMissingDialog();
             return;
         }
+        if (prereqChecker.getPipCmd() == null) {
+            statusLabel.setText("⚠ pip not found — reinstall Python with pip included.");
+            statusLabel.setStyle("-fx-text-fill: red;");
+            return;
+        }
+        showEsptoolInstallDialog();
+    }
 
-        statusLabel.setText("Installing esptool...");
-        statusLabel.setOnMouseClicked(null);
+    private void showEsptoolInstallDialog() {
+        Stage dialog = new Stage();
+        dialog.initModality(Modality.APPLICATION_MODAL);
+        dialog.setTitle("Installing esptool");
+        dialog.setResizable(false);
+
+        Label titleLabel = new Label("Installing esptool via pip...");
+        titleLabel.setStyle("-fx-font-weight: bold;");
+
+        ProgressBar bar = new ProgressBar();
+        bar.setProgress(ProgressBar.INDETERMINATE_PROGRESS);
+        bar.setMaxWidth(Double.MAX_VALUE);
+
+        TextArea output = new TextArea();
+        output.setEditable(false);
+        output.setWrapText(true);
+        output.setPrefHeight(180);
+        output.setPrefWidth(440);
+
+        Label statusMsg = new Label("Please wait...");
+
+        Button closeBtn = new Button("Close");
+        closeBtn.setDisable(true);
+        closeBtn.setOnAction(e -> dialog.close());
+
+        VBox root = new VBox(10, titleLabel, bar, output, statusMsg, closeBtn);
+        root.setPadding(new Insets(16));
+        root.setAlignment(Pos.CENTER_LEFT);
+
+        dialog.setScene(new Scene(root));
 
         Thread thread = new Thread(() -> {
-            boolean success = prereqChecker.installEsptool();
+            boolean success = prereqChecker.installEsptool(line ->
+                    Platform.runLater(() -> output.appendText(line + "\n"))
+            );
+
             Platform.runLater(() -> {
+                bar.setProgress(1.0);
                 if (success) {
-                    prereqChecker.checkAll();
+                    logArea.clear();
                     statusLabel.setText("Ready.");
                     statusLabel.setStyle("");
+                    flashButton.setDisable(false);
+                    factoryButton.setDisable(false);
+                    dialog.close();
                 } else {
-                    statusLabel.setText("Install failed — check log.");
+                    statusMsg.setText("✗ Install failed. Check output above.");
+                    statusMsg.setStyle("-fx-text-fill: red;");
+                    statusLabel.setText("⚠ esptool install failed.");
+                    closeBtn.setDisable(false);
                 }
             });
         });
         thread.setDaemon(true);
         thread.start();
+
+        dialog.show();
     }
 
     private void checkPrerequisites() {
@@ -413,7 +478,8 @@ public class FlasherApp extends Application implements FlashListener, PortListen
                     statusLabel.setText("Ready.");
                 } else {
                     statusLabel.setText("esptool not found — click here to install.");
-                    // we'll add install dialog next
+                    statusLabel.setStyle("-fx-text-fill: #2196f3; -fx-underline: true; -fx-cursor: hand;");
+                    statusLabel.setOnMouseClicked(e -> installEsptool());
                 }
             });
         });
@@ -509,14 +575,10 @@ public class FlasherApp extends Application implements FlashListener, PortListen
     @Override
     public void start(Stage primaryStage) throws Exception {
         checkForUpdates();
-        // set app icon
-        String os = System.getProperty("os.name").toLowerCase();
-        String iconFile = os.contains("mac") ? "/icons/icon.icns" : "/icons/icon.ico";
-        var iconUrl = getClass().getResource(iconFile);
+        // set app icon — JavaFX Image only supports PNG/JPEG/BMP, not .ico/.icns
+        var iconUrl = getClass().getResource("/icons/icon.png");
         if (iconUrl != null) {
-            primaryStage.getIcons().add(
-                    new javafx.scene.image.Image(iconUrl.toExternalForm())
-            );
+            primaryStage.getIcons().add(new javafx.scene.image.Image(iconUrl.toExternalForm()));
         }
 
 

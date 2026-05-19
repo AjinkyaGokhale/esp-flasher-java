@@ -1,7 +1,10 @@
 package com.ajinkyagokhale.espflasher.service;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.prefs.Preferences;
 
 public class PrereqChecker {
@@ -145,8 +148,11 @@ public class PrereqChecker {
     public boolean isReady() {
         return esptoolCmd != null;
     }
-    //helper
     public boolean installEsptool() {
+        return installEsptool(null);
+    }
+
+    public boolean installEsptool(Consumer<String> onLine) {
         if (pipCmd == null) return false;
         try {
             List<String> cmd = new ArrayList<>(List.of(pipCmd.split(" ")));
@@ -158,7 +164,12 @@ public class PrereqChecker {
                     .redirectErrorStream(true)
                     .start();
 
-            p.getInputStream().readAllBytes();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (onLine != null) onLine.accept(line);
+                }
+            }
             p.waitFor();
             checkAll();
             return esptoolCmd != null;
