@@ -61,6 +61,7 @@ public class FlasherApp extends Application implements FlashListener, PortListen
     //flashcounter
     private int flashCount = 0;
     private Label flashCountLabel;
+    private Label flashCountNumber;
     private boolean isFactoryMode = false;
 
 
@@ -89,7 +90,12 @@ public class FlasherApp extends Application implements FlashListener, PortListen
             stopButton.setDisable(true);
             if (success) {
                 flashCount++;
-                flashCountLabel.setText("Flashed: " + flashCount);
+                flashCountNumber.setText(String.valueOf(flashCount));
+                flashCountLabel.setStyle("-fx-background-color: rgba(102,187,106,0.25); -fx-border-color: #66bb6a;");
+                new javafx.animation.Timeline(
+                    new javafx.animation.KeyFrame(javafx.util.Duration.millis(800),
+                        ev -> flashCountLabel.setStyle(""))
+                ).play();
                 progressBar.setStyle("-fx-accent: green;");
                 progressBar.setProgress(1.0);
                 successSound.play();
@@ -299,16 +305,32 @@ public class FlasherApp extends Application implements FlashListener, PortListen
     }
 
 
-    //helper
-        private void showSettingsDialog(Stage owner) {
+    private void showSettingsDialog(Stage owner) {
         Stage dialog = new Stage();
         dialog.initOwner(owner);
         dialog.initModality(Modality.APPLICATION_MODAL);
         dialog.setTitle("Settings");
 
+        // ── Detected paths (read-only) ──────────────────────────────────
+        Label detectedHeading = new Label("Detected paths");
+        detectedHeading.setStyle("-fx-font-weight: bold;");
+
+        Label detectedPython  = detectedPathLabel("Python",  prereqChecker.getPythonCmd());
+        Label detectedPip     = detectedPathLabel("pip",     prereqChecker.getPipCmd());
+        Label detectedEsptool = detectedPathLabel("esptool", prereqChecker.getEsptoolCmd());
+
+        VBox detectedBox = new VBox(4, detectedPython, detectedPip, detectedEsptool);
+        detectedBox.setStyle("-fx-background-color: rgba(255,255,255,0.04); "
+                + "-fx-border-color: rgba(255,255,255,0.08); "
+                + "-fx-border-radius: 6; -fx-background-radius: 6; -fx-padding: 8;");
+
+        // ── Custom overrides ────────────────────────────────────────────
+        Label overrideHeading = new Label("Custom overrides  (leave blank to use auto-detect)");
+        overrideHeading.setStyle("-fx-font-weight: bold;");
+
         TextField pythonField = new TextField(PrereqChecker.getCustomPythonPath());
-        pythonField.setPromptText("e.g. C:\\Python313\\python.exe (leave blank for auto-detect)");
-        pythonField.setPrefWidth(420);
+        pythonField.setPromptText("e.g. C:\\Python313\\python.exe");
+        pythonField.setPrefWidth(400);
         Button pythonBrowse = new Button("Browse...");
         pythonBrowse.setOnAction(e -> {
             FileChooser fc = new FileChooser();
@@ -316,11 +338,10 @@ public class FlasherApp extends Application implements FlashListener, PortListen
             File f = fc.showOpenDialog(dialog);
             if (f != null) pythonField.setText(f.getAbsolutePath());
         });
-        HBox pythonRow = new HBox(8, pythonField, pythonBrowse);
 
         TextField esptoolField = new TextField(PrereqChecker.getCustomEsptoolPath());
-        esptoolField.setPromptText("e.g. C:\\Tools\\esptool.exe (leave blank to use Python)");
-        esptoolField.setPrefWidth(420);
+        esptoolField.setPromptText("e.g. C:\\Tools\\esptool.exe");
+        esptoolField.setPrefWidth(400);
         Button esptoolBrowse = new Button("Browse...");
         esptoolBrowse.setOnAction(e -> {
             FileChooser fc = new FileChooser();
@@ -328,22 +349,27 @@ public class FlasherApp extends Application implements FlashListener, PortListen
             File f = fc.showOpenDialog(dialog);
             if (f != null) esptoolField.setText(f.getAbsolutePath());
         });
-        HBox esptoolRow = new HBox(8, esptoolField, esptoolBrowse);
 
         Label status = new Label();
 
         Button save = new Button("Save & Recheck");
         save.setOnAction(e -> {
             PrereqChecker.setCustomPaths(pythonField.getText(), esptoolField.getText());
-            status.setText("Saved. Rechecking...");
+            status.setText("Rechecking...");
             new Thread(() -> {
                 prereqChecker.checkAll();
                 Platform.runLater(() -> {
+                    detectedPython.setText(detectedText("Python", prereqChecker.getPythonCmd()));
+                    detectedPip.setText(detectedText("pip", prereqChecker.getPipCmd()));
+                    detectedEsptool.setText(detectedText("esptool", prereqChecker.getEsptoolCmd()));
                     if (prereqChecker.isReady()) {
-                        status.setText("✓ esptool found: " + prereqChecker.getEsptoolCmd());
+                        status.setText("✓ Ready.");
+                        status.setStyle("-fx-text-fill: #66bb6a;");
                         statusLabel.setText("Ready.");
+                        statusLabel.setStyle("");
                     } else {
-                        status.setText("✗ esptool still not found. Check the paths.");
+                        status.setText("✗ esptool not found. Check paths.");
+                        status.setStyle("-fx-text-fill: red;");
                     }
                 });
             }).start();
@@ -354,18 +380,34 @@ public class FlasherApp extends Application implements FlashListener, PortListen
         HBox actions = new HBox(10, save, close);
         actions.setAlignment(Pos.CENTER_RIGHT);
 
-        VBox content = new VBox(10,
-                new Label("Python executable (optional):"),
-                pythonRow,
-                new Label("esptool executable (optional, takes priority over Python):"),
-                esptoolRow,
+        VBox content = new VBox(12,
+                detectedHeading,
+                detectedBox,
+                new Separator(),
+                overrideHeading,
+                new Label("Python:"),
+                new HBox(8, pythonField, pythonBrowse),
+                new Label("esptool:"),
+                new HBox(8, esptoolField, esptoolBrowse),
                 status,
                 actions
         );
-        content.setPadding(new Insets(15));
+        content.setPadding(new Insets(16));
 
         dialog.setScene(new Scene(content));
         dialog.show();
+    }
+
+    private Label detectedPathLabel(String name, String value) {
+        Label l = new Label(detectedText(name, value));
+        l.setStyle("-fx-font-family: monospace; -fx-font-size: 11px;");
+        return l;
+    }
+
+    private String detectedText(String name, String value) {
+        if (value == null || value.isBlank())
+            return "✗  " + name + ": not found";
+        return "✓  " + name + ": " + value;
     }
 
     private void browseBin(Stage stage) {
@@ -531,10 +573,21 @@ public class FlasherApp extends Application implements FlashListener, PortListen
         content.setAlignment(Pos.CENTER);
         content.getStyleClass().add("about-dialog");
 
-        Label title = new Label("⚡ ESP Flasher");
+        var iconUrl = getClass().getResource("/icons/icon.png");
+        if (iconUrl != null) {
+            javafx.scene.image.ImageView logo = new javafx.scene.image.ImageView(
+                    new javafx.scene.image.Image(iconUrl.toExternalForm()));
+            logo.setFitWidth(72);
+            logo.setFitHeight(72);
+            logo.setPreserveRatio(true);
+            content.getChildren().add(logo);
+        }
+
+        Label title = new Label("ESP Flasher");
         title.getStyleClass().add("about-title");
 
-        Label version = new Label("v1.0.0");
+        String appVersion = new UpdateService().currentVersion();
+        Label version = new Label("v" + appVersion);
         version.getStyleClass().add("about-version");
 
         Separator sep = new Separator();
@@ -566,7 +619,7 @@ public class FlasherApp extends Application implements FlashListener, PortListen
                 license, closeBtn
         );
 
-        Scene scene = new Scene(content, 280, 280);
+        Scene scene = new Scene(content, 280, 360);
         dialog.setScene(scene);
         dialog.show();
     }
@@ -682,8 +735,17 @@ public class FlasherApp extends Application implements FlashListener, PortListen
         factoryButton.setOnAction(e -> startFactoryMode());
 
 
-        flashCountLabel = new Label("Flashed: 0");
-        flashCountLabel.getStyleClass().add("flash-badge");
+        flashCountNumber = new Label("0");
+        flashCountNumber.getStyleClass().add("flash-count-number");
+
+        Label flashCountSub = new Label("flashed");
+        flashCountSub.getStyleClass().add("flash-count-sub");
+
+        flashCountLabel = new Label();
+        flashCountLabel.getStyleClass().add("flash-count-card");
+        VBox flashCard = new VBox(0, flashCountNumber, flashCountSub);
+        flashCard.setAlignment(Pos.CENTER);
+        flashCountLabel.setGraphic(flashCard);
 
         stopButton = new Button("Stop");
         stopButton.setOnAction(e -> stopAll());
@@ -696,7 +758,10 @@ public class FlasherApp extends Application implements FlashListener, PortListen
         Button settingsButton = new Button("Settings");
         settingsButton.setOnAction(e -> showSettingsDialog(primaryStage));
 
-        HBox buttonRow = new HBox(10, flashButton, factoryButton, settingsButton, flashCountLabel);
+        javafx.scene.layout.Region spacer = new javafx.scene.layout.Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        HBox buttonRow = new HBox(10, flashButton, factoryButton, settingsButton, spacer, flashCountLabel);
+        buttonRow.setAlignment(Pos.CENTER_LEFT);
 
         root.getChildren().add(buttonRow);
 // Progress bar
@@ -725,9 +790,27 @@ public class FlasherApp extends Application implements FlashListener, PortListen
         footer.setOnMouseClicked(e -> showAboutDialog());
         footer.setStyle("-fx-cursor: hand;");
         primaryStage.show();
-
+        if (isDarkMode()) applyDarkTitleBar(primaryStage);
 
     } //start-end
+
+    private interface Dwmapi extends com.sun.jna.Library {
+        Dwmapi INSTANCE = com.sun.jna.Native.load("dwmapi", Dwmapi.class);
+        void DwmSetWindowAttribute(com.sun.jna.platform.win32.WinDef.HWND hwnd, int attr,
+                                   com.sun.jna.ptr.IntByReference value, int size);
+    }
+
+    private void applyDarkTitleBar(Stage stage) {
+        if (!System.getProperty("os.name", "").toLowerCase().contains("win")) return;
+        try {
+            com.sun.jna.platform.win32.WinDef.HWND hwnd =
+                    com.sun.jna.platform.win32.User32.INSTANCE.FindWindow(null, stage.getTitle());
+            if (hwnd == null) return;
+            com.sun.jna.ptr.IntByReference dark = new com.sun.jna.ptr.IntByReference(1);
+            Dwmapi.INSTANCE.DwmSetWindowAttribute(hwnd, 20, dark, 4); // Windows 10 20H1+
+            Dwmapi.INSTANCE.DwmSetWindowAttribute(hwnd, 19, dark, 4); // older Win10 builds
+        } catch (Exception ignored) {}
+    }
 
     private void checkForUpdates() {
         Thread worker = new Thread(() -> {
