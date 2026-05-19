@@ -91,24 +91,27 @@ ESP Flasher is a **drop-in alternative for Tasmotizer users on macOS** and a lig
 
 ## Download and Installation
 
-Pre-built installers are published on the [GitHub Releases](../../releases) page.
+Download the latest installer for your platform from the
+[GitHub Releases](https://github.com/AjinkyaGokhale/esp-flasher-java/releases/latest) page:
 
-| Platform | Artifact                | Notes                                          |
-| -------- | ----------------------- | ---------------------------------------------- |
-| macOS    | `ESP Flasher.dmg`       | Apple Silicon and Intel. Unsigned (see below). |
-| Windows  | `ESP Flasher.msi`       | Unsigned (see below).                          |
+| Platform | Download                                                                                                                                                                    | Notes                                          |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| macOS    | [ESP.Flasher-1.0.3.dmg](https://github.com/AjinkyaGokhale/esp-flasher-java/releases/download/v1.0.3/ESP.Flasher-1.0.3.dmg)   | Apple Silicon and Intel. Unsigned (see below). |
+| Windows  | [ESP.Flasher-1.0.3.msi](https://github.com/AjinkyaGokhale/esp-flasher-java/releases/download/v1.0.3/ESP.Flasher-1.0.3.msi)   | Unsigned (see below).                          |
 
-### macOS — first launch
+### macOS — install
 
-The build is currently unsigned. If macOS Gatekeeper blocks the app, run:
+1. Open the `.dmg` file and drag **ESP Flasher** into your Applications folder.
+2. The build is currently unsigned. If macOS Gatekeeper blocks the app, run:
 
 ```bash
 xattr -cr "/Applications/ESP Flasher.app"
 ```
 
-### Windows — first launch
+### Windows — install
 
-SmartScreen may show a warning the first time. Choose **More info → Run anyway**.
+1. Run the `.msi` installer and follow the setup wizard.
+2. SmartScreen may show a warning the first time. Choose **More info → Run anyway**.
 
 ---
 
@@ -207,7 +210,7 @@ flowchart LR
 
 ```bash
 ./mvnw clean package
-java -jar target/espflasher-1.0.1.jar
+java -jar target/espflasher-1.0.3.jar
 ```
 
 ### Build a native installer
