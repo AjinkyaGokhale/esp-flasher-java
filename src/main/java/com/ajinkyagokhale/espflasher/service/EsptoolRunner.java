@@ -20,16 +20,15 @@ public class EsptoolRunner {
         isCancelled = false;
 
         Thread thread = new Thread(() -> {
-            List<String> command = new ArrayList<>();
 
-            command.addAll(tokenize(config.esptoolCmd()));
+            List<String> command = new ArrayList<>(tokenize(config.esptoolCmd()));
             command.add("--chip");
             command.add(config.chip());
             command.add("--port");
             command.add(config.port());
             command.add("--baud");
             command.add(String.valueOf(config.baudRate()));
-            command.add("write_flash");
+            command.add("write-flash");
             command.add(config.flashOffset());
             command.add(config.binPath());
 
@@ -66,7 +65,6 @@ public class EsptoolRunner {
 
             } catch (IOException | InterruptedException e) {
                 listener.onComplete(false, "Error: " + e.getMessage());
-                return;
             }
 
         });
@@ -93,7 +91,7 @@ public class EsptoolRunner {
             if (c == '"') {
                 inQuotes = !inQuotes;
             } else if (c == ' ' && !inQuotes) {
-                if (cur.length() > 0) {
+                if (!cur.isEmpty()) {
                     out.add(cur.toString());
                     cur.setLength(0);
                 }
@@ -101,7 +99,7 @@ public class EsptoolRunner {
                 cur.append(c);
             }
         }
-        if (cur.length() > 0) out.add(cur.toString());
+        if (!cur.isEmpty()) out.add(cur.toString());
         return out;
     }
 }
