@@ -1,0 +1,33 @@
+name-template: 'ESP Flasher v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
+
+categories:
+  - title: 'New Features'
+    labels: [ 'feat', 'feature', 'enhancement' ]
+  - title: 'Bug Fixes'
+    labels: [ 'fix', 'bug', 'bugfix' ]
+  - title: 'Performance'
+    labels: [ 'perf', 'performance' ]
+  - title: 'Maintenance'
+    labels: [ 'chore', 'deps', 'refactor', 'ci' ]
+  - title: 'Documentation'
+    labels: [ 'docs', 'documentation' ]
+
+change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
+change-title-escapes: '\<*_&'
+
+version-resolver:
+  major:
+    labels: [ 'breaking', 'major' ]
+  minor:
+    labels: [ 'feat', 'feature', 'enhancement' ]
+  patch:
+    labels: [ 'fix', 'bug', 'bugfix', 'perf', 'chore', 'deps', 'docs', 'ci' ]
+  default: patch
+
+template: |
+  ## What's Changed
+
+  $CHANGES
+
+  **Full Changelog**: https://github.com/AjinkyaGokhale/esp-flasher-java/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION

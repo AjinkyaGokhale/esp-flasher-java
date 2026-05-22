@@ -197,6 +197,23 @@
 				</executions>
 			</plugin>
 
+			<!-- SpotBugs static analysis -->
+			<plugin>
+				<groupId>com.github.spotbugs</groupId>
+				<artifactId>spotbugs-maven-plugin</artifactId>
+				<version>4.8.6.4</version>
+				<configuration>
+					<effort>Default</effort>
+					<threshold>Medium</threshold>
+					<failOnError>true</failOnError>
+				</configuration>
+				<executions>
+					<execution>
+						<goals><goal>check</goal></goals>
+					</execution>
+				</executions>
+			</plugin>
+
 			<!-- jpackage -->
 			<plugin>
 				<groupId>org.panteleyev</groupId>
