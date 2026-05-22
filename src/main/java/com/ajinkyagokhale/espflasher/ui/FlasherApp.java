@@ -2,12 +2,11 @@ package com.ajinkyagokhale.espflasher.ui;
 
 import com.ajinkyagokhale.espflasher.listener.FlashListener;
 import com.ajinkyagokhale.espflasher.listener.PortListener;
+import com.ajinkyagokhale.espflasher.model.AppSettings;
 import com.ajinkyagokhale.espflasher.model.FlashConfig;
-import com.ajinkyagokhale.espflasher.service.EsptoolRunner;
-import com.ajinkyagokhale.espflasher.service.PortWatcher;
-import com.ajinkyagokhale.espflasher.service.PrereqChecker;
-import com.ajinkyagokhale.espflasher.service.UpdateService;
-import com.fazecast.jSerialComm.SerialPort;
+import com.ajinkyagokhale.espflasher.model.FlashResult;
+import com.ajinkyagokhale.espflasher.service.*;
+
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -20,6 +19,7 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Modality;
@@ -27,7 +27,6 @@ import javafx.stage.Stage;
 
 import javafx.scene.media.AudioClip;
 
-import javax.sound.sampled.Port;
 import java.awt.*;
 import java.io.File;
 import java.util.List;
@@ -64,7 +63,13 @@ public class FlasherApp extends Application implements FlashListener, PortListen
     private Label flashCountNumber;
     private boolean isFactoryMode = false;
 
+//settings
+    private SettingsManager settingsManager;
+    private FlashLogger flashLogger;
 
+    // tracks state across flash lifecycle
+    private String currentFlashPort;
+    private String currentFlashMac;
 
     @Override
     public void onProgress(int percent) {
@@ -75,14 +80,19 @@ public class FlasherApp extends Application implements FlashListener, PortListen
 
     @Override
     public void onLog(String line) {
-        Platform.runLater(() -> {
-            logArea.appendText(line + "\n");
-        });
-
+        if (line.contains("MAC:")) {
+            String[] parts = line.split("MAC:");
+            if (parts.length > 1) currentFlashMac = parts[1].trim();
+        }
+        Platform.runLater(() -> logArea.appendText(line + "\n"));
     }
 
     @Override
     public void onComplete(boolean success, String message) {
+        String timestamp = java.time.LocalDateTime.now()
+                .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        flashLogger.append(new FlashResult(success, message, currentFlashMac, currentFlashPort, timestamp));
+
         Platform.runLater(() -> {
             statusLabel.setText(message);
             flashButton.setDisable(false);
@@ -139,25 +149,32 @@ public class FlasherApp extends Application implements FlashListener, PortListen
         String os = System.getProperty("os.name", "").toLowerCase();
         String steps;
         if (os.contains("win")) {
-            steps = "1. Go to https://python.org/downloads\n"
-                  + "2. Download the latest Python 3 installer for Windows.\n"
-                  + "3. Run the installer — check \"Add Python to PATH\" before clicking Install.\n"
-                  + "4. Restart ESP Flasher after installation.";
+            steps = """
+                    1. Go to https://python.org/downloads
+                    2. Download the latest Python 3 installer for Windows.
+                    3. Run the installer — check "Add Python to PATH" before clicking Install.
+                    4. Restart ESP Flasher after installation.""";
         } else if (os.contains("mac")) {
-            steps = "Option A — Homebrew (recommended):\n"
-                  + "  brew install python3\n\n"
-                  + "Option B — Installer:\n"
-                  + "1. Go to https://python.org/downloads\n"
-                  + "2. Download and run the macOS installer.\n"
-                  + "3. Restart ESP Flasher after installation.";
+            steps = """
+                    Option A — Homebrew (recommended):
+                      brew install python3
+                    
+                    Option B — Installer:
+                    1. Go to https://python.org/downloads
+                    2. Download and run the macOS installer.
+                    3. Restart ESP Flasher after installation.""";
         } else {
-            steps = "Debian / Ubuntu:\n"
-                  + "  sudo apt install python3 python3-pip\n\n"
-                  + "Fedora / RHEL:\n"
-                  + "  sudo dnf install python3\n\n"
-                  + "Arch:\n"
-                  + "  sudo pacman -S python\n\n"
-                  + "Restart ESP Flasher after installation.";
+            steps = """
+                    Debian / Ubuntu:
+                      sudo apt install python3 python3-pip
+                    
+                    Fedora / RHEL:
+                      sudo dnf install python3
+                    
+                    Arch:
+                      sudo pacman -S python
+                    
+                    Restart ESP Flasher after installation.""";
         }
 
         TextArea guide = new TextArea(steps);
@@ -231,6 +248,8 @@ public class FlasherApp extends Application implements FlashListener, PortListen
         statusLabel.setText("Flashing...");
 
         // 4. start flashing
+        currentFlashPort = port;
+        currentFlashMac = null;
         esptoolRunner.startFlashing(config, this);
     }
 
@@ -305,15 +324,218 @@ public class FlasherApp extends Application implements FlashListener, PortListen
     }
 
 
-    private void showSettingsDialog(Stage owner) {
-        Stage dialog = new Stage();
-        dialog.initOwner(owner);
-        dialog.initModality(Modality.APPLICATION_MODAL);
-        dialog.setTitle("Settings");
+//    private void showSettingsDialog(Stage owner) {
+//        Stage dialog = new Stage();
+//        dialog.initOwner(owner);
+//        dialog.initModality(Modality.APPLICATION_MODAL);
+//        dialog.setTitle("Settings");
+//
+//        // ── Detected paths (read-only) ──────────────────────────────────
+//        Label detectedHeading = new Label("Detected paths");
+//        detectedHeading.setStyle("-fx-font-weight: bold;");
+//
+//        Label detectedPython  = detectedPathLabel("Python",  prereqChecker.getPythonCmd());
+//        Label detectedPip     = detectedPathLabel("pip",     prereqChecker.getPipCmd());
+//        Label detectedEsptool = detectedPathLabel("esptool", prereqChecker.getEsptoolCmd());
+//
+//        VBox detectedBox = new VBox(4, detectedPython, detectedPip, detectedEsptool);
+//        detectedBox.setStyle("-fx-background-color: rgba(255,255,255,0.04); "
+//                + "-fx-border-color: rgba(255,255,255,0.08); "
+//                + "-fx-border-radius: 6; -fx-background-radius: 6; -fx-padding: 8;");
+//
+//        // ── Custom overrides ────────────────────────────────────────────
+//        Label overrideHeading = new Label("Custom overrides  (leave blank to use auto-detect)");
+//        overrideHeading.setStyle("-fx-font-weight: bold;");
+//
+//        TextField pythonField = new TextField(PrereqChecker.getCustomPythonPath());
+//        pythonField.setPromptText("e.g. C:\\Python313\\python.exe");
+//        pythonField.setPrefWidth(400);
+//        Button pythonBrowse = new Button("Browse...");
+//        pythonBrowse.setOnAction(e -> {
+//            FileChooser fc = new FileChooser();
+//            fc.setTitle("Select Python executable");
+//            File f = fc.showOpenDialog(dialog);
+//            if (f != null) pythonField.setText(f.getAbsolutePath());
+//        });
+//
+//        TextField esptoolField = new TextField(PrereqChecker.getCustomEsptoolPath());
+//        esptoolField.setPromptText("e.g. C:\\Tools\\esptool.exe");
+//        esptoolField.setPrefWidth(400);
+//        Button esptoolBrowse = new Button("Browse...");
+//        esptoolBrowse.setOnAction(e -> {
+//            FileChooser fc = new FileChooser();
+//            fc.setTitle("Select esptool executable");
+//            File f = fc.showOpenDialog(dialog);
+//            if (f != null) esptoolField.setText(f.getAbsolutePath());
+//        });
+//
+//        Label status = new Label();
+//
+//        Button save = new Button("Save & Recheck");
+//        save.setOnAction(e -> {
+//            PrereqChecker.setCustomPaths(pythonField.getText(), esptoolField.getText());
+//            status.setText("Rechecking...");
+//            new Thread(() -> {
+//                prereqChecker.checkAll();
+//                Platform.runLater(() -> {
+//                    detectedPython.setText(detectedText("Python", prereqChecker.getPythonCmd()));
+//                    detectedPip.setText(detectedText("pip", prereqChecker.getPipCmd()));
+//                    detectedEsptool.setText(detectedText("esptool", prereqChecker.getEsptoolCmd()));
+//                    if (prereqChecker.isReady()) {
+//                        status.setText("✓ Ready.");
+//                        status.setStyle("-fx-text-fill: #66bb6a;");
+//                        statusLabel.setText("Ready.");
+//                        statusLabel.setStyle("");
+//                    } else {
+//                        status.setText("✗ esptool not found. Check paths.");
+//                        status.setStyle("-fx-text-fill: red;");
+//                    }
+//                });
+//            }).start();
+//        });
+//        Button close = new Button("Close");
+//        close.setOnAction(e -> dialog.close());
+//
+//        HBox actions = new HBox(10, save, close);
+//        actions.setAlignment(Pos.CENTER_RIGHT);
+//
+//        VBox content = new VBox(12,
+//                detectedHeading,
+//                detectedBox,
+//                new Separator(),
+//                overrideHeading,
+//                new Label("Python:"),
+//                new HBox(8, pythonField, pythonBrowse),
+//                new Label("esptool:"),
+//                new HBox(8, esptoolField, esptoolBrowse),
+//                status,
+//                actions
+//        );
+//        content.setPadding(new Insets(16));
+//
+//        dialog.setScene(new Scene(content));
+//        dialog.show();
+//    }
+private void showSettingsDialog(Stage owner) {
+    Stage dialog = new Stage();
+    dialog.initOwner(owner);
+    dialog.initModality(Modality.APPLICATION_MODAL);
+    dialog.setTitle("Settings");
+    dialog.setResizable(false);
 
-        // ── Detected paths (read-only) ──────────────────────────────────
-        Label detectedHeading = new Label("Detected paths");
-        detectedHeading.setStyle("-fx-font-weight: bold;");
+    // ── Left menu ──────────────────────────────────────
+    VBox leftMenu = new VBox(0);
+    leftMenu.getStyleClass().add("settings-menu");
+    leftMenu.setPrefWidth(150);
+
+    Label menuTitle = new Label("Settings");
+    menuTitle.getStyleClass().add("settings-menu-title");
+    menuTitle.setPadding(new Insets(16));
+
+    Button generalBtn = new Button("General");
+    generalBtn.getStyleClass().add("settings-menu-item");
+    generalBtn.setMaxWidth(Double.MAX_VALUE);
+
+    Button pathsBtn = new Button("Paths");
+    pathsBtn.getStyleClass().add("settings-menu-item");
+    pathsBtn.setMaxWidth(Double.MAX_VALUE);
+
+    Button logFileBtn = new Button("Log File");
+    logFileBtn.getStyleClass().add("settings-menu-item");
+    logFileBtn.setMaxWidth(Double.MAX_VALUE);
+
+    leftMenu.getChildren().addAll(menuTitle, generalBtn, pathsBtn, logFileBtn);
+
+    // ── Right panels ────────────────────────────────────
+    VBox generalPane  = buildGeneralPane();
+    VBox pathsPane    = buildPathsPane(dialog);
+    VBox logFilePane  = buildLogFilePane(dialog);
+
+    pathsPane.setVisible(false);
+    logFilePane.setVisible(false);
+
+    StackPane rightContent = new StackPane(generalPane, pathsPane, logFilePane);
+    rightContent.setPadding(new Insets(20));
+    rightContent.setPrefWidth(370);
+
+    // ── Menu click handlers ─────────────────────────────
+    generalBtn.setOnAction(e -> {
+        generalPane.setVisible(true);
+        pathsPane.setVisible(false);
+        logFilePane.setVisible(false);
+        setActiveMenu(generalBtn, pathsBtn, logFileBtn);
+    });
+    pathsBtn.setOnAction(e -> {
+        generalPane.setVisible(false);
+        pathsPane.setVisible(true);
+        logFilePane.setVisible(false);
+        setActiveMenu(pathsBtn, generalBtn, logFileBtn);
+    });
+    logFileBtn.setOnAction(e -> {
+        generalPane.setVisible(false);
+        pathsPane.setVisible(false);
+        logFilePane.setVisible(true);
+        setActiveMenu(logFileBtn, generalBtn, pathsBtn);
+    });
+
+    // General active by default
+    generalBtn.getStyleClass().add("settings-menu-item-active");
+
+    // ── Bottom bar ──────────────────────────────────────
+    Button saveBtn = new Button("Save");
+    saveBtn.getStyleClass().add("btn-primary");
+    saveBtn.setOnAction(e -> {
+        settingsManager.save();
+        dialog.close();
+    });
+
+    Button cancelBtn = new Button("Cancel");
+    cancelBtn.getStyleClass().add("btn-secondary");
+    cancelBtn.setOnAction(e -> dialog.close());
+
+    HBox bottomBar = new HBox(10, cancelBtn, saveBtn);
+    bottomBar.setAlignment(Pos.CENTER_RIGHT);
+    bottomBar.setPadding(new Insets(10, 20, 16, 20));
+
+    // ── Main layout ─────────────────────────────────────
+    HBox mainLayout = new HBox(leftMenu, rightContent);
+    VBox root = new VBox(mainLayout, bottomBar);
+    root.getStyleClass().add("settings-root");
+
+    Scene scene = new Scene(root, 520, 380);
+    scene.getStylesheets().add(
+            Objects.requireNonNull(getClass().getResource("/styles.css")).toExternalForm()
+    );
+    dialog.setScene(scene);
+    dialog.show();
+}
+
+    // helper — sets active style on clicked button
+    private void setActiveMenu(Button active, Button... others) {
+        active.getStyleClass().add("settings-menu-item-active");
+        for (Button b : others) b.getStyleClass().remove("settings-menu-item-active");
+    }
+
+    // ── General pane ────────────────────────────────────────
+    private VBox buildGeneralPane() {
+        VBox pane = new VBox(12);
+
+        Label heading = new Label("General");
+        heading.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
+
+        Label info = new Label("Last used settings are saved automatically.");
+        info.setStyle("-fx-text-fill: #888888;");
+
+        pane.getChildren().addAll(heading, info);
+        return pane;
+    }
+
+    // ── Paths pane — moved from old showSettingsDialog ───────
+    private VBox buildPathsPane(Stage dialog) {
+        VBox pane = new VBox(12);
+
+        Label heading = new Label("Detected Paths");
+        heading.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
 
         Label detectedPython  = detectedPathLabel("Python",  prereqChecker.getPythonCmd());
         Label detectedPip     = detectedPathLabel("pip",     prereqChecker.getPipCmd());
@@ -324,36 +546,32 @@ public class FlasherApp extends Application implements FlashListener, PortListen
                 + "-fx-border-color: rgba(255,255,255,0.08); "
                 + "-fx-border-radius: 6; -fx-background-radius: 6; -fx-padding: 8;");
 
-        // ── Custom overrides ────────────────────────────────────────────
-        Label overrideHeading = new Label("Custom overrides  (leave blank to use auto-detect)");
+        Label overrideHeading = new Label("Custom Overrides");
         overrideHeading.setStyle("-fx-font-weight: bold;");
 
         TextField pythonField = new TextField(PrereqChecker.getCustomPythonPath());
-        pythonField.setPromptText("e.g. C:\\Python313\\python.exe");
-        pythonField.setPrefWidth(400);
+        pythonField.setPromptText("e.g. /usr/bin/python3");
+        HBox.setHgrow(pythonField, Priority.ALWAYS);
         Button pythonBrowse = new Button("Browse...");
         pythonBrowse.setOnAction(e -> {
             FileChooser fc = new FileChooser();
-            fc.setTitle("Select Python executable");
             File f = fc.showOpenDialog(dialog);
             if (f != null) pythonField.setText(f.getAbsolutePath());
         });
 
         TextField esptoolField = new TextField(PrereqChecker.getCustomEsptoolPath());
-        esptoolField.setPromptText("e.g. C:\\Tools\\esptool.exe");
-        esptoolField.setPrefWidth(400);
+        esptoolField.setPromptText("e.g. /usr/local/bin/esptool.py");
+        HBox.setHgrow(esptoolField, Priority.ALWAYS);
         Button esptoolBrowse = new Button("Browse...");
         esptoolBrowse.setOnAction(e -> {
             FileChooser fc = new FileChooser();
-            fc.setTitle("Select esptool executable");
             File f = fc.showOpenDialog(dialog);
             if (f != null) esptoolField.setText(f.getAbsolutePath());
         });
 
         Label status = new Label();
-
-        Button save = new Button("Save & Recheck");
-        save.setOnAction(e -> {
+        Button recheckBtn = new Button("Save & Recheck");
+        recheckBtn.setOnAction(e -> {
             PrereqChecker.setCustomPaths(pythonField.getText(), esptoolField.getText());
             status.setText("Rechecking...");
             new Thread(() -> {
@@ -362,40 +580,128 @@ public class FlasherApp extends Application implements FlashListener, PortListen
                     detectedPython.setText(detectedText("Python", prereqChecker.getPythonCmd()));
                     detectedPip.setText(detectedText("pip", prereqChecker.getPipCmd()));
                     detectedEsptool.setText(detectedText("esptool", prereqChecker.getEsptoolCmd()));
-                    if (prereqChecker.isReady()) {
-                        status.setText("✓ Ready.");
-                        status.setStyle("-fx-text-fill: #66bb6a;");
-                        statusLabel.setText("Ready.");
-                        statusLabel.setStyle("");
-                    } else {
-                        status.setText("✗ esptool not found. Check paths.");
-                        status.setStyle("-fx-text-fill: red;");
-                    }
+                    status.setText(prereqChecker.isReady() ? "✓ Ready." : "✗ esptool not found.");
+                    status.setStyle(prereqChecker.isReady() ? "-fx-text-fill: green;" : "-fx-text-fill: red;");
                 });
             }).start();
         });
-        Button close = new Button("Close");
-        close.setOnAction(e -> dialog.close());
 
-        HBox actions = new HBox(10, save, close);
-        actions.setAlignment(Pos.CENTER_RIGHT);
-
-        VBox content = new VBox(12,
-                detectedHeading,
-                detectedBox,
-                new Separator(),
-                overrideHeading,
-                new Label("Python:"),
-                new HBox(8, pythonField, pythonBrowse),
-                new Label("esptool:"),
-                new HBox(8, esptoolField, esptoolBrowse),
-                status,
-                actions
+        pane.getChildren().addAll(
+                heading, detectedBox,
+                new Separator(), overrideHeading,
+                new Label("Python:"), new HBox(8, pythonField, pythonBrowse),
+                new Label("esptool:"), new HBox(8, esptoolField, esptoolBrowse),
+                status, recheckBtn
         );
-        content.setPadding(new Insets(16));
+        return pane;
+    }
 
-        dialog.setScene(new Scene(content));
-        dialog.show();
+    // ── Log File pane ────────────────────────────────────────
+    private VBox buildLogFilePane(Stage dialog) {
+        VBox pane = new VBox(12);
+        AppSettings settings = settingsManager.getSettings();
+
+        Label heading = new Label("Log File");
+        heading.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
+
+        Label infoBtn = new Label("ℹ");
+        infoBtn.setStyle(
+                "-fx-border-color: #666; -fx-border-radius: 50%; -fx-background-radius: 50%; " +
+                "-fx-background-color: #2a2a2a; -fx-font-size: 12px; -fx-text-fill: #cccccc; " +
+                "-fx-min-width: 22px; -fx-min-height: 22px; -fx-max-width: 22px; -fx-max-height: 22px; " +
+                "-fx-alignment: center; -fx-cursor: hand;");
+        infoBtn.setOnMouseClicked(e -> {
+            Alert info = new Alert(Alert.AlertType.NONE);
+            info.setTitle("Why use a log file?");
+            info.getButtonTypes().add(javafx.scene.control.ButtonType.OK);
+
+            Label title = new Label("MAC Address Provisioning Audit");
+            title.setStyle("-fx-font-weight: bold; -fx-font-size: 13px;");
+
+            Label recordedLabel = new Label("Each flash attempt is recorded with:");
+            recordedLabel.setStyle("-fx-font-size: 12px;");
+
+            VBox bullets = new VBox(4,
+                    bullet("Timestamp"),
+                    bullet("Serial port"),
+                    bullet("Device MAC address"),
+                    bullet("Status  (success / failed)")
+            );
+            bullets.setStyle("-fx-padding: 0 0 0 12;");
+
+            Label useCaseLabel = new Label("Use case — backend provisioning check:");
+            useCaseLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 12px; -fx-padding: 8 0 0 0;");
+
+            Label useCaseBody = new Label(
+                    "Upload flash-log.csv to your backend and cross-reference the MAC " +
+                    "addresses against your provisioned-device registry. This lets you verify " +
+                    "that every flashed device was registered, catch devices that were flashed " +
+                    "but never provisioned, and flag duplicates (same MAC flashed twice)."
+            );
+            useCaseBody.setStyle("-fx-font-size: 12px;");
+            useCaseBody.setWrapText(true);
+            useCaseBody.setMaxWidth(380);
+
+            VBox content = new VBox(8, title, recordedLabel, bullets, useCaseLabel, useCaseBody);
+            content.setStyle("-fx-padding: 4;");
+
+            info.getDialogPane().setContent(content);
+            info.getDialogPane().getStylesheets().addAll(dialog.getScene().getStylesheets());
+            info.showAndWait();
+        });
+
+        HBox headingRow = new HBox(8, heading, infoBtn);
+        headingRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
+        CheckBox enableToggle = new CheckBox("Enable log file");
+        enableToggle.setSelected(settings.isLogFileEnabled());
+        enableToggle.setStyle(settings.isLogFileEnabled() ? "-fx-text-fill: #66bb6a;" : "");
+
+
+        Label pathLabel = new Label("Log folder:");
+        TextField pathField = new TextField(settings.getLogFilePath());
+        pathField.setDisable(!settings.isLogFileEnabled());
+        HBox.setHgrow(pathField, Priority.ALWAYS);
+
+        Button browseBtn = new Button("Browse...");
+        browseBtn.setDisable(!settings.isLogFileEnabled());
+        browseBtn.setOnAction(e -> {
+            javafx.stage.DirectoryChooser dc = new javafx.stage.DirectoryChooser();
+            dc.setTitle("Select Log Folder");
+            File dir = dc.showDialog(dialog);
+            if (dir != null) pathField.setText(dir.getAbsolutePath());
+        });
+
+        Label formatInfo = new Label("Format: timestamp, port, MAC address, status");
+        formatInfo.setStyle("-fx-text-fill: #888888; -fx-font-size: 11px;");
+
+        // enable/disable fields when toggle changes
+        enableToggle.setOnAction(e -> {
+            boolean enabled = enableToggle.isSelected();
+            pathField.setDisable(!enabled);
+            browseBtn.setDisable(!enabled);
+            settings.setLogFileEnabled(enabled);
+            enableToggle.setStyle(enabled ? "-fx-text-fill: #66bb6a;" : "");
+        });
+
+        // save path on change
+        pathField.textProperty().addListener((obs, old, val) ->
+                settings.setLogFilePath(val)
+        );
+
+        pane.getChildren().addAll(
+                headingRow,
+                enableToggle,
+                pathLabel,
+                new HBox(8, pathField, browseBtn),
+                formatInfo
+        );
+        return pane;
+    }
+    private Label bullet(String text) {
+        Label l = new Label("• " + text);
+        l.setStyle("-fx-font-size: 12px;");
+        return l;
     }
 
     private Label detectedPathLabel(String name, String value) {
@@ -624,6 +930,19 @@ public class FlasherApp extends Application implements FlashListener, PortListen
         dialog.show();
     }
 
+    @Override
+    public void stop() {
+        AppSettings settings = settingsManager.getSettings();
+        settings.setLastChip(chipCombo.getValue());
+        settings.setLastBaudRate(baudCombo.getValue());
+        settings.setLastBinPath(binPathField.getText());
+        settings.setLastPort(portCombo.getValue());
+        settingsManager.save();
+
+        portWatcher.stopWatching();
+        esptoolRunner.stopFlashing();
+    }
+
 
     @Override
     public void start(Stage primaryStage) throws Exception {
@@ -638,6 +957,9 @@ public class FlasherApp extends Application implements FlashListener, PortListen
         esptoolRunner = new EsptoolRunner();
         portWatcher = new PortWatcher();
         prereqChecker = new PrereqChecker();
+        settingsManager = new SettingsManager();
+        settingsManager.load();
+        flashLogger = new FlashLogger(settingsManager.getSettings());
 
         var successUrl = getClass().getResource("/sounds/success.wav");
         var failUrl = getClass().getResource("/sounds/failure.wav");
@@ -771,6 +1093,14 @@ public class FlasherApp extends Application implements FlashListener, PortListen
 
         root.getChildren().addAll(progressBar, statusLabel);
         checkPrerequisites();
+
+
+        //apply last settings
+        AppSettings settings = settingsManager.getSettings();
+        if (!settings.getLastChip().isEmpty()) chipCombo.setValue(settings.getLastChip());
+        if (!settings.getLastBaudRate().isEmpty()) baudCombo.setValue(settings.getLastBaudRate());
+        if (!settings.getLastBinPath().isEmpty()) binPathField.setText(settings.getLastBinPath());
+
 
 // Log area
         logArea = new TextArea();
