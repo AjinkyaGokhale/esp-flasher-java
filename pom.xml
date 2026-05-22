@@ -109,6 +109,11 @@
 		<!-- Windows native interop (dark title bar) -->
 		<dependency>
 			<groupId>net.java.dev.jna</groupId>
+			<artifactId>jna</artifactId>
+			<version>5.14.0</version>
+		</dependency>
+		<dependency>
+			<groupId>net.java.dev.jna</groupId>
 			<artifactId>jna-platform</artifactId>
 			<version>5.14.0</version>
 		</dependency>
@@ -119,6 +124,14 @@
 			<artifactId>junit-jupiter</artifactId>
 			<version>5.10.2</version>
 			<scope>test</scope>
+		</dependency>
+
+		<!-- Source: https://mvnrepository.com/artifact/tools.jackson.core/jackson-databind -->
+		<dependency>
+			<groupId>tools.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+			<version>3.1.2</version>
+			<scope>compile</scope>
 		</dependency>
 	</dependencies>
 

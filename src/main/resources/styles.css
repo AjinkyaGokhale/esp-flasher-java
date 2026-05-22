@@ -200,3 +200,47 @@
 .dialog-pane .button-bar .button:hover {
     -fx-background-color: #4a4a4c;
 }
+
+/* ── Settings dialog ─────────────────────────────────── */
+.settings-root {
+    -fx-background-color: #1c1c1e;
+}
+
+.settings-menu {
+    -fx-background-color: #141416;
+    -fx-border-color: #3a3a3c;
+    -fx-border-width: 0 1 0 0;
+}
+
+.settings-menu-title {
+    -fx-text-fill: #888888;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+.settings-menu-item {
+    -fx-background-color: transparent;
+    -fx-text-fill: #e0e0e0;
+    -fx-font-size: 13px;
+    -fx-alignment: CENTER-LEFT;
+    -fx-padding: 10 16 10 16;
+    -fx-border-width: 0;
+    -fx-cursor: hand;
+}
+
+.settings-menu-item:hover {
+    -fx-background-color: rgba(255,255,255,0.05);
+}
+
+.settings-menu-item-active {
+    -fx-background-color: rgba(255,255,255,0.08);
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+.check-box .label {
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.check-box:selected .label {
+    -fx-text-fill: #ffffff;
+}
