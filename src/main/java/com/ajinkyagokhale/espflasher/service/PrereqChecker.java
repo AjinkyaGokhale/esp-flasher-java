@@ -1,7 +1,9 @@
 package com.ajinkyagokhale.espflasher.service;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -164,7 +166,7 @@ public class PrereqChecker {
                     .redirectErrorStream(true)
                     .start();
 
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream(), StandardCharsets.UTF_8))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     if (onLine != null) onLine.accept(line);
@@ -173,7 +175,8 @@ public class PrereqChecker {
             p.waitFor();
             checkAll();
             return esptoolCmd != null;
-        } catch (Exception e) {
+        } catch (IOException | InterruptedException e) {
+            Thread.currentThread().interrupt();
             return false;
         }
     }
@@ -182,10 +185,11 @@ public class PrereqChecker {
             Process p = new ProcessBuilder(args)
                     .redirectErrorStream(true)
                     .start();
-            String output = new String(p.getInputStream().readAllBytes()).strip();
+            String output = new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8).strip();
             int exit = p.waitFor();
             return (exit == 0 && !output.isEmpty()) ? output : null;
-        } catch (Exception e) {
+        } catch (IOException | InterruptedException e) {
+            Thread.currentThread().interrupt();
             return null;
         }
     }

@@ -118,6 +118,14 @@
 			<version>5.14.0</version>
 		</dependency>
 
+		<!-- SpotBugs annotations for @SuppressFBWarnings -->
+		<dependency>
+			<groupId>com.github.spotbugs</groupId>
+			<artifactId>spotbugs-annotations</artifactId>
+			<version>4.8.6</version>
+			<scope>compile</scope>
+		</dependency>
+
 		<!-- Testing -->
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>

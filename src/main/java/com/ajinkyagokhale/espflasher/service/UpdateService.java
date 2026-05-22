@@ -1,9 +1,11 @@
 package com.ajinkyagokhale.espflasher.service;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.awt.Desktop;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
@@ -39,7 +41,7 @@ public class UpdateService {
             Properties props = new Properties();
             props.load(in);
             return props.getProperty("version", "0.0.0").trim();
-        } catch (Exception e) {
+        } catch (IOException e) {
             return "0.0.0";
         }
     }
@@ -71,7 +73,8 @@ public class UpdateService {
                 }
             }
             return Optional.empty();
-        } catch (Exception e) {
+        } catch (IOException | InterruptedException e) {
+            Thread.currentThread().interrupt();
             return Optional.empty();
         }
     }
@@ -88,6 +91,7 @@ public class UpdateService {
         return false;
     }
 
+    @SuppressFBWarnings("DM_EXIT")
     public boolean downloadAndLaunch(Release release, ProgressListener listener, AtomicBoolean cancelled)
             throws Exception {
         String ext = assetExtension();
@@ -126,7 +130,7 @@ public class UpdateService {
             return false;
         }
         Desktop.getDesktop().open(target.toFile());
-        System.exit(0);
+        System.exit(0); // intentional: installer takes over, JVM must exit
         return true;
     }
 
