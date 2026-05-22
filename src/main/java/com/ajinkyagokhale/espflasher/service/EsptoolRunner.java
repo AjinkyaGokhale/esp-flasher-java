@@ -6,6 +6,7 @@ import com.ajinkyagokhale.espflasher.model.FlashConfig;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -40,7 +41,7 @@ public class EsptoolRunner {
 
                 Pattern pattern = Pattern.compile("(\\d+(?:\\.\\d+)?)\\s*%");
                 try (BufferedReader reader = new BufferedReader(
-                        new InputStreamReader(currentProcess.getInputStream()))) {
+                        new InputStreamReader(currentProcess.getInputStream(), StandardCharsets.UTF_8))) {
                     String line;
                     while ((line = reader.readLine()) != null) {
                         if (isCancelled) break;

@@ -118,6 +118,14 @@
 			<version>5.14.0</version>
 		</dependency>
 
+		<!-- SpotBugs annotations for @SuppressFBWarnings -->
+		<dependency>
+			<groupId>com.github.spotbugs</groupId>
+			<artifactId>spotbugs-annotations</artifactId>
+			<version>4.8.6</version>
+			<scope>compile</scope>
+		</dependency>
+
 		<!-- Testing -->
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
@@ -193,6 +201,23 @@
 								</transformer>
 							</transformers>
 						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- SpotBugs static analysis -->
+			<plugin>
+				<groupId>com.github.spotbugs</groupId>
+				<artifactId>spotbugs-maven-plugin</artifactId>
+				<version>4.8.6.4</version>
+				<configuration>
+					<effort>Default</effort>
+					<threshold>Medium</threshold>
+					<failOnError>true</failOnError>
+				</configuration>
+				<executions>
+					<execution>
+						<goals><goal>check</goal></goals>
 					</execution>
 				</executions>
 			</plugin>

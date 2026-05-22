@@ -6,6 +6,7 @@ import com.ajinkyagokhale.espflasher.model.AppSettings;
 import com.ajinkyagokhale.espflasher.model.FlashConfig;
 import com.ajinkyagokhale.espflasher.model.FlashResult;
 import com.ajinkyagokhale.espflasher.service.*;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -29,6 +30,7 @@ import javafx.scene.media.AudioClip;
 
 import java.awt.*;
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -852,7 +854,7 @@ private void showSettingsDialog(Stage owner) {
                 Process p = Runtime.getRuntime().exec(
                         new String[]{"defaults", "read", "-g", "AppleInterfaceStyle"}
                 );
-                String result = new String(p.getInputStream().readAllBytes()).strip();
+                String result = new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8).strip();
                 return result.equalsIgnoreCase("dark");
             } else if (os.contains("windows")) {
                 Process p = Runtime.getRuntime().exec(new String[]{
@@ -860,7 +862,7 @@ private void showSettingsDialog(Stage owner) {
                         "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
                         "/v", "AppsUseLightTheme"
                 });
-                String result = new String(p.getInputStream().readAllBytes());
+                String result = new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
                 return result.contains("0x0");
             }
         } catch (Exception e) {
@@ -1130,6 +1132,7 @@ private void showSettingsDialog(Stage owner) {
                                    com.sun.jna.ptr.IntByReference value, int size);
     }
 
+    @SuppressFBWarnings("DE_MIGHT_IGNORE")
     private void applyDarkTitleBar(Stage stage) {
         if (!System.getProperty("os.name", "").toLowerCase().contains("win")) return;
         try {
@@ -1155,6 +1158,7 @@ private void showSettingsDialog(Stage owner) {
         worker.start();
     }
 
+    @SuppressFBWarnings("DM_EXIT")
     private void promptForcedUpdate(UpdateService updates, UpdateService.Release release, String current) {
         ButtonType updateNow = new ButtonType("Update Now", ButtonBar.ButtonData.OK_DONE);
         ButtonType quit = new ButtonType("Quit", ButtonBar.ButtonData.CANCEL_CLOSE);
