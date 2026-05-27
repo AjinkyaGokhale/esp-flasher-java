@@ -6,15 +6,21 @@ Works on **macOS** (Apple Silicon + Intel) and **Windows**. Flash **Tasmota**, *
 
 ![ESP Flasher main window on macOS — flashing an ESP32 firmware binary](docs/screenshots/main.png)
 
+![ESP Flasher Explore Popular Projects view — browse Tasmota and other supported firmware with one-click flashing](docs/screenshots/pop.png)
+
 ---
 
 ## Features
 
 - Native `.dmg` and `.msi` installers — no Python GUI required to launch
+- **Popular firmware catalog** — one-click flash of Tasmota and Tasmota SML (ottelo9); auto-downloads the correct factory binary for your chip and caches it locally
+- **Explore Popular Projects** view — browse supported firmware with logos and open project repositories directly
+- Custom Binary mode for any `.bin` (ESPHome, WLED, MicroPython, Arduino, ESP-IDF)
 - Automatic ESP32/ESP8266 serial port detection (CP210x, CH340, FTDI)
 - Selectable chip type, baud rate up to 921600, and custom flash offset
 - Live progress bar and real-time `esptool` log output
 - **Factory Mode** — auto-flashes every ESP board the moment it is plugged in
+- Inline **Settings** view: detected Python/esptool paths, custom path overrides, optional flash-log CSV with MAC-address audit trail
 - One-click `esptool` install via `pip` if it is missing
 - Automatic light / dark theme based on system appearance
 - Persistent flash counter for production runs
@@ -26,8 +32,8 @@ Works on **macOS** (Apple Silicon + Intel) and **Windows**. Flash **Tasmota**, *
 
 | Platform | Installer |
 | -------- | --------- |
-| macOS (Apple Silicon & Intel) | [ESP.Flasher-1.0.3.dmg](https://github.com/AjinkyaGokhale/esp-flasher-java/releases/download/v1.0.3/ESP.Flasher-1.0.3.dmg) |
-| Windows | [ESP.Flasher-1.0.3.msi](https://github.com/AjinkyaGokhale/esp-flasher-java/releases/download/v1.0.3/ESP.Flasher-1.0.3.msi) |
+| macOS (Apple Silicon & Intel) | [ESP.Flasher-1.0.4.dmg](https://github.com/AjinkyaGokhale/esp-flasher-java/releases/download/v1.0.4/ESP.Flasher-1.0.4.dmg) |
+| Windows | [ESP.Flasher-1.0.4.msi](https://github.com/AjinkyaGokhale/esp-flasher-java/releases/download/v1.0.4/ESP.Flasher-1.0.4.msi) |
 
 **macOS:** Drag to Applications. If Gatekeeper blocks it:
 ```bash
@@ -50,12 +56,24 @@ Both installers are currently unsigned.
 
 ## How to Flash ESP32 or ESP8266 Firmware
 
-1. Click **Browse...** and pick your firmware `.bin` file (Tasmota, ESPHome, WLED, MicroPython, Arduino, or ESP-IDF).
-2. Select the **Chip** (or leave on `auto` to let `esptool` detect it).
-3. Select the **Port** — click **Refresh** if your board isn't listed.
-4. Choose a **Baud Rate** — `460800` is a safe default; `921600` is faster if your USB-serial chip supports it.
-5. Set the **Flash Offset**: `0x0` for merged ESP32 binaries and all ESP8266, `0x1000` for ESP32 bootloader-only, `0x10000` for application-only.
-6. Click **Flash Once**.
+### Option A — Popular firmware (auto-download)
+
+1. Set **Source** to a catalogued project (e.g. **Tasmota** or **Tasmota SML (ottelo9)**). The latest version is shown next to the dropdown.
+2. Pick your **Chip** — the chip list is filtered to variants the project actually ships.
+3. Select the **Port** and **Baud Rate**.
+4. Click **Flash Once**. The app downloads the matching factory binary, caches it under `~/.esp-flasher/firmware-cache`, and flashes. Switching chips later reuses the cache until a new version is released.
+
+Tip: click **Explore Popular Projects →** next to the Source dropdown to see all supported firmware with logos and open their GitHub pages.
+
+### Option B — Custom binary
+
+1. Set **Source** to **Custom Binary**.
+2. Click **Browse...** and pick your firmware `.bin` file (ESPHome, WLED, MicroPython, Arduino, ESP-IDF, etc.).
+3. Select the **Chip** (or leave on `auto` to let `esptool` detect it).
+4. Select the **Port** — click **Refresh** if your board isn't listed.
+5. Choose a **Baud Rate** — `460800` is a safe default; `921600` is faster if your USB-serial chip supports it.
+6. Set the **Flash Offset**: `0x0` for merged ESP32 binaries and all ESP8266, `0x1000` for ESP32 bootloader-only, `0x10000` for application-only.
+7. Click **Flash Once**.
 
 ### Factory Mode — Mass Flash ESP Boards
 
@@ -84,7 +102,7 @@ Requires JDK 17+ and Maven (or the included `mvnw` wrapper).
 ```bash
 # Run from source
 ./mvnw clean package
-java -jar target/espflasher-1.0.3.jar
+java -jar target/espflasher-1.0.4.jar
 
 # Build native installer (DMG on macOS, MSI on Windows)
 ./mvnw clean package
