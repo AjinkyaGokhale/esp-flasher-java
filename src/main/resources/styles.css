@@ -18,6 +18,13 @@
 .label {
     -fx-text-fill: #e0e0e0;
 }
+.radio-button .label {
+    -fx-text-fill: #e0e0e0;
+}
+
+.radio-button:selected .label {
+    -fx-text-fill: #ffffff;
+}
 
 .text-field, .combo-box {
     -fx-background-color: #2c2c2e;
@@ -201,15 +208,19 @@
     -fx-background-color: #4a4a4c;
 }
 
-/* ── Settings dialog ─────────────────────────────────── */
+/* ── Settings view (inline) ──────────────────────────── */
 .settings-root {
-    -fx-background-color: #1c1c1e;
+    -fx-background-color: transparent;
 }
 
 .settings-menu {
-    -fx-background-color: #141416;
-    -fx-border-color: #3a3a3c;
-    -fx-border-width: 0 1 0 0;
+    -fx-background-color: rgba(255, 255, 255, 0.05);
+    -fx-border-color: rgba(255, 255, 255, 0.1);
+    -fx-border-width: 1;
+    -fx-border-radius: 12;
+    -fx-background-radius: 12;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 10, 0, 0, 2);
+    -fx-padding: 4 0 4 0;
 }
 
 .settings-menu-title {
@@ -226,16 +237,39 @@
     -fx-padding: 10 16 10 16;
     -fx-border-width: 0;
     -fx-cursor: hand;
+    -fx-background-radius: 6;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+.settings-menu-item:focused {
+    -fx-background-color: transparent;
 }
 
 .settings-menu-item:hover {
-    -fx-background-color: rgba(255,255,255,0.05);
+    -fx-background-color: rgba(255,255,255,0.06);
 }
 
-.settings-menu-item-active {
-    -fx-background-color: rgba(255,255,255,0.08);
+.settings-menu-item-active,
+.settings-menu-item-active:focused {
+    -fx-background-color: rgba(255,255,255,0.10);
     -fx-text-fill: white;
     -fx-font-weight: bold;
+}
+
+/* primary action button (Save in settings, etc.) */
+.btn-primary {
+    -fx-background-color: #66bb6a;
+    -fx-text-fill: #1c1c1e;
+    -fx-font-weight: bold;
+    -fx-background-radius: 6;
+    -fx-border-radius: 6;
+    -fx-padding: 6 18 6 18;
+    -fx-cursor: hand;
+}
+
+.btn-primary:hover {
+    -fx-background-color: #7ccc81;
 }
 .check-box .label {
     -fx-text-fill: -fx-text-base-color;
@@ -243,4 +277,98 @@
 
 .check-box:selected .label {
     -fx-text-fill: #ffffff;
+}
+/* ── Toolbar ─────────────────────────────────────────── */
+.toolbar {
+    -fx-background-color: rgba(255, 255, 255, 0.06);
+    -fx-border-color: rgba(255, 255, 255, 0.10);
+    -fx-border-width: 1;
+    -fx-border-radius: 20;
+    -fx-background-radius: 20;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 10, 0, 0, 2);
+    -fx-padding: 4 4 4 4;
+}
+
+.toolbar-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: #888888;
+    -fx-font-size: 13px;
+    -fx-padding: 5 24 5 24;
+    -fx-background-radius: 16;
+    -fx-border-width: 0;
+    -fx-cursor: hand;
+    -fx-min-width: 90;
+}
+
+.toolbar-btn:hover {
+    -fx-text-fill: #cccccc;
+}
+
+.toolbar-btn-active {
+    -fx-background-color: rgba(255, 255, 255, 0.12);
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: bold;
+}
+
+/* ── Link-style button (Explore Popular Projects, Back) ── */
+.link-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #66bb6a;
+    -fx-font-size: 12px;
+    -fx-padding: 4 8 4 8;
+    -fx-cursor: hand;
+    -fx-border-width: 0;
+    -fx-background-radius: 6;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+.link-button:hover {
+    -fx-text-fill: #7ccc81;
+    -fx-background-color: rgba(102,187,106,0.08);
+    -fx-underline: true;
+}
+
+/* ── Explore Popular Projects view ─────────────────────── */
+.explore-root {
+    -fx-background-color: transparent;
+}
+
+.explore-title {
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+}
+
+.explore-category {
+    -fx-text-fill: #cccccc;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 8 0 4 0;
+}
+
+.firmware-card {
+    -fx-background-color: rgba(255, 255, 255, 0.05);
+    -fx-border-color: rgba(255, 255, 255, 0.10);
+    -fx-border-width: 1;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-padding: 12;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 6, 0, 0, 1);
+}
+
+.firmware-card:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.09);
+    -fx-border-color: rgba(102, 187, 106, 0.5);
+}
+
+.firmware-card-title {
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+.firmware-card-desc {
+    -fx-text-fill: #999999;
+    -fx-font-size: 11px;
 }
