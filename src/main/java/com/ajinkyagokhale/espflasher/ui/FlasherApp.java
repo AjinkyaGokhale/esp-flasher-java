@@ -1067,30 +1067,26 @@ public class FlasherApp extends Application implements FlashListener, PortListen
     private void checkPrerequisites() {
         statusLabel.setText("Checking prerequisites...");
 
+        // Run check in background, then update UI once result is known
         Thread thread = new Thread(() -> {
             prereqChecker.checkAll();
             Platform.runLater(() -> {
                 if (prereqChecker.isReady()) {
                     statusLabel.setText("Ready.");
+                } else if (prereqChecker.getPythonCmd() == null) {
+                    showPythonMissingDialog();
                 } else {
+                    // Python exists but esptool doesn't — offer to install
                     statusLabel.setText("esptool not found — click here to install.");
                     statusLabel.setStyle("-fx-text-fill: #2196f3; -fx-underline: true; -fx-cursor: hand;");
                     statusLabel.setOnMouseClicked(e -> installEsptool());
+                    // Auto-trigger install dialog on first run
+                    autoInstallEsptool();
                 }
             });
         });
         thread.setDaemon(true);
         thread.start();
-
-        Platform.runLater(() -> {
-            if (prereqChecker.isReady()) {
-                statusLabel.setText("Ready.");
-            } else if (prereqChecker.getPythonCmd() == null) {
-                showPythonMissingDialog();
-            } else {
-                autoInstallEsptool();
-            }
-        });
     }
 
     private void installEsptool() {
