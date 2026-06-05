@@ -173,7 +173,18 @@ public class PrereqChecker {
                 }
             }
             p.waitFor();
+
+            // After pip installs a new package, the shell may cache "command not found".
+            // Brief pause + retry ensures the newly installed esptool is discoverable.
             checkAll();
+            if (esptoolCmd == null) {
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException ignored) {
+                    Thread.currentThread().interrupt();
+                }
+                checkAll();
+            }
             return esptoolCmd != null;
         } catch (IOException | InterruptedException e) {
             Thread.currentThread().interrupt();
